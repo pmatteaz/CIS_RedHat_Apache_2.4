@@ -1422,9 +1422,11 @@ check_ssl_certificate() {
     local cert_file=""
 
     if [ "$DISTRO" = "debian" ]; then
-        ssl_conf+="$APACHE_PATH/sites-enabled/ssl*.conf"      # Da verificare
+        ssl_conf+=("$APACHE_PATH/sites-enabled/ssl.conf")                # Da verificare
+        ssl_conf+=("$APACHE_PATH/sites-enabled/ssl-hardening.conf")      # Da verificare
     else
-        ssl_conf+="$APACHE_PATH/conf.d/ssl*.conf"
+        ssl_conf+=("$APACHE_PATH/conf.d/ssl.conf")
+        ssl_conf+=("$APACHE_PATH/conf.d/ssl-hardening.conf")
     fi
 
     for conf in "${ssl_conf[@]}"; do
@@ -1453,9 +1455,11 @@ check_private_key_protection() {
     local key_file=""
 
     if [ "$DISTRO" = "debian" ]; then
-        ssl_conf+="$APACHE_PATH/sites-enabled/ssl*.conf"     # Da verificare 
+        ssl_conf+=("$APACHE_PATH/mods-enabled/ssl.conf")                # Da verificare
+        ssl_conf+=("$APACHE_PATH/mods-enabled/ssl-hardening.conf")      # Da verificare
     else
-        ssl_conf+="$APACHE_PATH/conf.d/ssl*.conf"
+        ssl_conf+=("$APACHE_PATH/conf.d/ssl.conf")
+        ssl_conf+=("$APACHE_PATH/conf.d/ssl-hardening.conf")
     fi
 
     for conf in "${ssl_conf[@]}"; do
@@ -1484,9 +1488,11 @@ check_tls_version() {
     local ssl_conf=""
 
     if [ "$DISTRO" = "debian" ]; then
-        ssl_conf+="$APACHE_PATH/mods-enabled/ssl*.conf"
+        ssl_conf+=("$APACHE_PATH/mods-enabled/ssl.conf")                # Da verificare
+        ssl_conf+=("$APACHE_PATH/mods-enabled/ssl-hardening.conf")      # Da verificare
     else
-        ssl_conf+="$APACHE_PATH/conf.d/ssl*.conf"
+        ssl_conf+=("$APACHE_PATH/conf.d/ssl.conf")
+        ssl_conf+=("$APACHE_PATH/conf.d/ssl-hardening.conf")
     fi
 
     for conf in "${ssl_conf[@]}"; do
@@ -1512,9 +1518,11 @@ check_weak_ciphers() {
     local ssl_conf=""
 
     if [ "$DISTRO" = "debian" ]; then
-        ssl_conf+="$APACHE_PATH/mods-enabled/ssl*.conf"
+        ssl_conf+=("$APACHE_PATH/mods-enabled/ssl.conf")                # Da verificare
+        ssl_conf+=("$APACHE_PATH/mods-enabled/ssl-hardening.conf")      # Da verificare
     else
-        ssl_conf+="$APACHE_PATH/conf.d/ssl*.conf"
+        ssl_conf+=("$APACHE_PATH/conf.d/ssl.conf")
+        ssl_conf+=("$APACHE_PATH/conf.d/ssl-hardening.conf")
     fi
 
     for conf in "${ssl_conf[@]}"; do
@@ -1540,10 +1548,13 @@ check_ssl_renegotiation() {
     local ssl_conf=""
 
     if [ "$DISTRO" = "debian" ]; then
-        ssl_conf+="$APACHE_PATH/mods-enabled/ssl*.conf"
+        ssl_conf+=("$APACHE_PATH/mods-enabled/ssl.conf")                # Da verificare
+        ssl_conf+=("$APACHE_PATH/mods-enabled/ssl-hardening.conf")      # Da verificare
     else
-        ssl_conf+="$APACHE_PATH/conf.d/ssl*.conf"
+        ssl_conf+=("$APACHE_PATH/conf.d/ssl.conf")
+        ssl_conf+=("$APACHE_PATH/conf.d/ssl-hardening.conf")
     fi
+    
     for conf in "${ssl_conf[@]}"; do
      if [ -f "$conf" ]; then
          if ! grep -q "SSLInsecureRenegotiation on" "$conf"; then
@@ -1565,11 +1576,13 @@ check_ssl_compression() {
     local ssl_conf=""
 
     if [ "$DISTRO" = "debian" ]; then
-        ssl_conf+="$APACHE_PATH/mods-enabled/ssl*.conf"
+        ssl_conf+=("$APACHE_PATH/mods-enabled/ssl.conf")                # Da verificare
+        ssl_conf+=("$APACHE_PATH/mods-enabled/ssl-hardening.conf")      # Da verificare
     else
-        ssl_conf+="$APACHE_PATH/conf.d/ssl*.conf"
+        ssl_conf+=("$APACHE_PATH/conf.d/ssl.conf")
+        ssl_conf+=("$APACHE_PATH/conf.d/ssl-hardening.conf")
     fi
-
+    
     for conf in "${ssl_conf[@]}"; do
      if [ -f "$conf" ]; then
          if grep -q "SSLCompression off" "$conf"; then
@@ -1591,9 +1604,11 @@ check_medium_ciphers() {
     local ssl_conf=""
 
     if [ "$DISTRO" = "debian" ]; then
-        ssl_conf+="$APACHE_PATH/mods-enabled/ssl*.conf"
+        ssl_conf+=("$APACHE_PATH/mods-enabled/ssl.conf")                # Da verificare
+        ssl_conf+=("$APACHE_PATH/mods-enabled/ssl-hardening.conf")      # Da verificare
     else
-        ssl_conf+="$APACHE_PATH/conf.d/ssl*.conf"
+        ssl_conf+=("$APACHE_PATH/conf.d/ssl.conf")
+        ssl_conf+=("$APACHE_PATH/conf.d/ssl-hardening.conf")
     fi
 
     for conf in "${ssl_conf[@]}"; do
@@ -1646,9 +1661,11 @@ check_ocsp_stapling() {
     local ssl_conf=""
 
     if [ "$DISTRO" = "debian" ]; then
-        ssl_conf+="$APACHE_PATH/mods-enabled/ssl.conf"
+        ssl_conf+=("$APACHE_PATH/mods-enabled/ssl.conf")                # Da verificare
+        ssl_conf+=("$APACHE_PATH/mods-enabled/ssl-hardening.conf")      # Da verificare
     else
-        ssl_conf+="$APACHE_PATH/conf.d/ssl.conf"
+        ssl_conf+=("$APACHE_PATH/conf.d/ssl.conf")
+        ssl_conf+=("$APACHE_PATH/conf.d/ssl-hardening.conf")
     fi
 
     for conf in "${ssl_conf[@]}"; do
@@ -1672,9 +1689,11 @@ check_hsts() {
     local config_files=()
 
     if [ "$DISTRO" = "debian" ]; then
-        config_files+=("$APACHE_PATH/conf-enabled/*.conf")
+        ssl_conf+=("$APACHE_PATH/mods-enabled/ssl.conf")                # Da verificare
+        ssl_conf+=("$APACHE_PATH/mods-enabled/ssl-hardening.conf")      # Da verificare
     else
-        config_files+=("$APACHE_PATH/conf.d/*.conf")
+        ssl_conf+=("$APACHE_PATH/conf.d/ssl.conf")
+        ssl_conf+=("$APACHE_PATH/conf.d/ssl-hardening.conf")
     fi
 
     for conf in "${config_files[@]}"; do
@@ -1697,10 +1716,13 @@ check_forward_secrecy() {
     local ssl_conf=""
 
     if [ "$DISTRO" = "debian" ]; then
-        ssl_conf="$APACHE_PATH/mods-enabled/ssl.conf"
+        ssl_conf+=("$APACHE_PATH/mods-enabled/ssl.conf")                # Da verificare
+        ssl_conf+=("$APACHE_PATH/mods-enabled/ssl-hardening.conf")      # Da verificare
     else
-        ssl_conf="$APACHE_PATH/conf.d/ssl.conf"
+        ssl_conf+=("$APACHE_PATH/conf.d/ssl.conf")
+        ssl_conf+=("$APACHE_PATH/conf.d/ssl-hardening.conf")
     fi
+    
     for conf in "${ssl_conf[@]}"; do
      if [ -f "$conf" ]; then
          if grep -q "^[[:space:]]*SSLCipherSuite.*EECDH\|EDH" "$conf"; then
