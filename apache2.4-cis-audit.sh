@@ -1422,20 +1422,22 @@ check_ssl_certificate() {
     local cert_file=""
 
     if [ "$DISTRO" = "debian" ]; then
-        ssl_conf="$APACHE_PATH/sites-enabled/default-ssl.conf"
+        ssl_conf+="$APACHE_PATH/sites-enabled/ssl*.conf"      # Da verificare
     else
-        ssl_conf="$APACHE_PATH/conf.d/ssl.conf"
+        ssl_conf+="$APACHE_PATH/conf.d/ssl*.conf"
     fi
 
-    if [ -f "$ssl_conf" ]; then
-        cert_file=$(grep "^[[:space:]]*SSLCertificateFile" "$ssl_conf" | awk '{print $2}')
-        if [ -f "$cert_file" ]; then
-            # Verifica validità certificato
-            if openssl x509 -in "$cert_file" -noout -checkend 0 >/dev/null 2>&1; then
-                cert_valid=1
-            fi
-        fi
-    fi
+    for conf in "${ssl_conf[@]}"; do
+     if [ -f "$conf" ]; then
+         cert_file=$(grep "^[[:space:]]*SSLCertificateFile" "$conf" | awk '{print $2}')
+         if [ -f "$cert_file" ]; then
+             # Verifica validità certificato
+             if openssl x509 -in "$cert_file" -noout -checkend 0 >/dev/null 2>&1; then
+                 cert_valid=1
+             fi
+         fi
+     fi
+    done
 
     if [ $cert_valid -eq 1 ]; then
         print_result "7.2 Certificato SSL valido installato" 0 7
@@ -1451,21 +1453,23 @@ check_private_key_protection() {
     local key_file=""
 
     if [ "$DISTRO" = "debian" ]; then
-        ssl_conf="$APACHE_PATH/sites-enabled/default-ssl.conf"
+        ssl_conf+="$APACHE_PATH/sites-enabled/ssl*.conf"     # Da verificare 
     else
-        ssl_conf="$APACHE_PATH/conf.d/ssl.conf"
+        ssl_conf+="$APACHE_PATH/conf.d/ssl*.conf"
     fi
 
-    if [ -f "$ssl_conf" ]; then
-        key_file=$(grep "^[[:space:]]*SSLCertificateKeyFile" "$ssl_conf" | awk '{print $2}')
-        if [ -f "$key_file" ]; then
-            local key_perms=$(stat -c %a "$key_file")
-            local key_owner=$(stat -c %U "$key_file")
-            if [ "$key_perms" = "400" ] && [ "$key_owner" = "root" ]; then
-                key_protected=1
-            fi
-        fi
-    fi
+    for conf in "${ssl_conf[@]}"; do
+     if [ -f "$conf" ]; then
+         key_file=$(grep "^[[:space:]]*SSLCertificateKeyFile" "$conf" | awk '{print $2}')
+         if [ -f "$key_file" ]; then
+             local key_perms=$(stat -c %a "$key_file")
+             local key_owner=$(stat -c %U "$key_file")
+             if [ "$key_perms" = "400" ] && [ "$key_owner" = "root" ]; then
+                 key_protected=1
+             fi
+         fi
+     fi
+    done
 
     if [ $key_protected -eq 1 ]; then
         print_result "7.3 Chiave privata protetta correttamente" 0 7
@@ -1480,19 +1484,21 @@ check_tls_version() {
     local ssl_conf=""
 
     if [ "$DISTRO" = "debian" ]; then
-        ssl_conf="$APACHE_PATH/mods-enabled/ssl.conf"
+        ssl_conf+="$APACHE_PATH/mods-enabled/ssl*.conf"
     else
-        ssl_conf="$APACHE_PATH/conf.d/ssl.conf"
+        ssl_conf+="$APACHE_PATH/conf.d/ssl*.conf"
     fi
 
-    if [ -f "$ssl_conf" ]; then
-        if grep -q "^[[:space:]]*SSLProtocol" "$ssl_conf"; then
-            if ! grep -q "TLSv1\.0\|TLSv1\.1" "$ssl_conf" && grep -q "TLSv1\.2\|TLSv1\.3" "$ssl_conf"; then
-                tls_secure=1
-            fi
-        fi
-    fi
-
+    for conf in "${ssl_conf[@]}"; do
+     if [ -f "$conf" ]; then
+         if grep -q "^[[:space:]]*SSLProtocol" "$conf"; then
+             if ! grep -q "TLSv1\.0\|TLSv1\.1" "$conf" && grep -q "TLSv1\.2\|TLSv1\.3" "$conf"; then
+                 tls_secure=1
+             fi
+         fi
+     fi
+    done
+    
     if [ $tls_secure -eq 1 ]; then
         print_result "7.4 TLSv1.0 e TLSv1.1 disabilitati" 0 7
     else
@@ -1506,19 +1512,21 @@ check_weak_ciphers() {
     local ssl_conf=""
 
     if [ "$DISTRO" = "debian" ]; then
-        ssl_conf="$APACHE_PATH/mods-enabled/ssl.conf"
+        ssl_conf+="$APACHE_PATH/mods-enabled/ssl*.conf"
     else
-        ssl_conf="$APACHE_PATH/conf.d/ssl.conf"
+        ssl_conf+="$APACHE_PATH/conf.d/ssl*.conf"
     fi
 
-    if [ -f "$ssl_conf" ]; then
-        if grep -q "^[[:space:]]*SSLCipherSuite" "$ssl_conf"; then
-            if ! grep -q "RC4\|DES\|MD5\|EXP\|ADH\|NULL" "$ssl_conf"; then
-                strong_ciphers=1
-            fi
-        fi
-    fi
-
+    for conf in "${ssl_conf[@]}"; do
+     if [ -f "$conf" ]; then
+         if grep -q "^[[:space:]]*SSLCipherSuite" "$conf"; then
+             if ! grep -q "RC4\|DES\|MD5\|EXP\|ADH\|NULL" "$conf"; then
+                 strong_ciphers=1
+             fi
+         fi
+     fi
+    done
+    
     if [ $strong_ciphers -eq 1 ]; then
         print_result "7.5 Cipher suite configurata in modo sicuro" 0 7
     else
@@ -1532,16 +1540,17 @@ check_ssl_renegotiation() {
     local ssl_conf=""
 
     if [ "$DISTRO" = "debian" ]; then
-        ssl_conf="$APACHE_PATH/mods-enabled/ssl.conf"
+        ssl_conf+="$APACHE_PATH/mods-enabled/ssl*.conf"
     else
-        ssl_conf="$APACHE_PATH/conf.d/ssl.conf"
+        ssl_conf+="$APACHE_PATH/conf.d/ssl*.conf"
     fi
-
-    if [ -f "$ssl_conf" ]; then
-        if ! grep -q "SSLInsecureRenegotiation on" "$ssl_conf"; then
-            secure_reneg=1
-        fi
-    fi
+    for conf in "${ssl_conf[@]}"; do
+     if [ -f "$conf" ]; then
+         if ! grep -q "SSLInsecureRenegotiation on" "$conf"; then
+             secure_reneg=1
+         fi
+     fi
+    done
 
     if [ $secure_reneg -eq 1 ]; then
         print_result "7.6 Rinegoziazione SSL sicura" 0 7
@@ -1556,17 +1565,19 @@ check_ssl_compression() {
     local ssl_conf=""
 
     if [ "$DISTRO" = "debian" ]; then
-        ssl_conf="$APACHE_PATH/mods-enabled/ssl.conf"
+        ssl_conf+="$APACHE_PATH/mods-enabled/ssl*.conf"
     else
-        ssl_conf="$APACHE_PATH/conf.d/ssl.conf"
+        ssl_conf+="$APACHE_PATH/conf.d/ssl*.conf"
     fi
 
-    if [ -f "$ssl_conf" ]; then
-        if grep -q "SSLCompression off" "$ssl_conf"; then
-            compression_disabled=1
-        fi
-    fi
-
+    for conf in "${ssl_conf[@]}"; do
+     if [ -f "$conf" ]; then
+         if grep -q "SSLCompression off" "$conf"; then
+             compression_disabled=1
+         fi
+     fi
+    done
+    
     if [ $compression_disabled -eq 1 ]; then
         print_result "7.7 Compressione SSL disabilitata" 0 7
     else
@@ -1580,19 +1591,21 @@ check_medium_ciphers() {
     local ssl_conf=""
 
     if [ "$DISTRO" = "debian" ]; then
-        ssl_conf="$APACHE_PATH/mods-enabled/ssl.conf"
+        ssl_conf+="$APACHE_PATH/mods-enabled/ssl*.conf"
     else
-        ssl_conf="$APACHE_PATH/conf.d/ssl.conf"
+        ssl_conf+="$APACHE_PATH/conf.d/ssl*.conf"
     fi
 
-    if [ -f "$ssl_conf" ]; then
-        if grep -q "^[[:space:]]*SSLCipherSuite" "$ssl_conf"; then
-            if ! grep -q "!3DES\|!IDEA\|!SEED\|!CAMELLIA" "$ssl_conf"; then
-                secure_ciphers=1
-            fi
-        fi
-    fi
-
+    for conf in "${ssl_conf[@]}"; do
+     if [ -f "$conf" ]; then
+         if grep -q "^[[:space:]]*SSLCipherSuite" "$conf"; then
+             if ! grep -q "!3DES\|!IDEA\|!SEED\|!CAMELLIA" "$conf"; then
+                 secure_ciphers=1
+             fi
+         fi
+     fi
+    done
+    
     if [ $secure_ciphers -eq 1 ]; then
         print_result "7.8 Cipher di media forza disabilitati" 0 7
     else
@@ -1633,16 +1646,18 @@ check_ocsp_stapling() {
     local ssl_conf=""
 
     if [ "$DISTRO" = "debian" ]; then
-        ssl_conf="$APACHE_PATH/mods-enabled/ssl.conf"
+        ssl_conf+="$APACHE_PATH/mods-enabled/ssl.conf"
     else
-        ssl_conf="$APACHE_PATH/conf.d/ssl.conf"
+        ssl_conf+="$APACHE_PATH/conf.d/ssl.conf"
     fi
 
-    if [ -f "$ssl_conf" ]; then
-        if grep -q "SSLUseStapling on" "$ssl_conf" && grep -q "SSLStaplingCache" "$ssl_conf"; then
-            stapling_enabled=1
-        fi
-    fi
+    for conf in "${ssl_conf[@]}"; do
+     if [ -f "$conf" ]; then
+         if grep -q "SSLUseStapling on" "$ssl_conf" && grep -q "SSLStaplingCache" "$conf"; then
+             stapling_enabled=1
+         fi
+     fi
+    done
 
     if [ $stapling_enabled -eq 1 ]; then
         print_result "7.10 OCSP Stapling abilitato" 0 7
@@ -1686,12 +1701,13 @@ check_forward_secrecy() {
     else
         ssl_conf="$APACHE_PATH/conf.d/ssl.conf"
     fi
-
-    if [ -f "$ssl_conf" ]; then
-        if grep -q "^[[:space:]]*SSLCipherSuite.*EECDH\|EDH" "$ssl_conf"; then
-            forward_secrecy=1
-        fi
-    fi
+    for conf in "${ssl_conf[@]}"; do
+     if [ -f "$conf" ]; then
+         if grep -q "^[[:space:]]*SSLCipherSuite.*EECDH\|EDH" "$conf"; then
+             forward_secrecy=1
+         fi
+     fi
+    done
 
     if [ $forward_secrecy -eq 1 ]; then
         print_result "7.12 Forward Secrecy abilitato" 0 7
