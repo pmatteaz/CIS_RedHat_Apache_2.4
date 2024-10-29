@@ -9,6 +9,13 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
+
+# Inizializzazione array per tracciare i problemi per sezione
+declare -A section_issues
+for i in {1..12}; do
+    section_issues[$i]=0
+done
+
 TOTAL_CHECKS=0
 PASSED_CHECKS=0
 FAILED_CHECKS=0
