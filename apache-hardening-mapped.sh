@@ -345,6 +345,157 @@ manage_modules() {
 # 3.3 - Ensure Apache User Account Is Locked
 # 3.4-3.13 - File and Directory Permissions
 # ------------------------------
+# Procedura per proteggere file critici apache
+# ------------------------------
+secure_critical_files() {
+    echo "Protezione file critici di Apache..."
+    
+    # Definizione delle directory e file critici con i loro permessi desiderati
+    declare -A CRITICAL_PATHS
+    
+    case $DISTRO in
+        debian)
+            CRITICAL_PATHS=(
+                # CIS 3.7 - Core Dump Directory
+                ["/var/crash"]="root:root:0700"
+                ["/var/core"]="root:root:0700"
+                
+                # CIS 3.8 - Lock File
+                ["/var/lock/apache2"]="root:root:0700"
+                ["/var/run/apache2/apache2.lock"]="root:root:0700"
+                
+                # CIS 3.9 - PID File
+                ["/var/run/apache2"]="root:root:0755"
+                ["/var/run/apache2/apache2.pid"]="root:root:0644"
+                
+                # CIS 3.10 - ScoreBoard File
+                ["/var/run/apache2/scoreboard"]="root:root:0600"
+            )
+            ;;
+            
+        redhat)
+            CRITICAL_PATHS=(
+                # CIS 3.7 - Core Dump Directory
+                ["/var/crash"]="root:root:0700"
+                ["/var/core"]="root:root:0700"
+                
+                # CIS 3.8 - Lock File
+                ["/var/lock/subsys/httpd"]="root:root:0700"
+                ["/var/run/httpd/httpd.lock"]="root:root:0700"
+                
+                # CIS 3.9 - PID File
+                ["/var/run/httpd"]="root:root:0755"
+                ["/var/run/httpd/httpd.pid"]="root:root:0644"
+                
+                # CIS 3.10 - ScoreBoard File
+                ["/var/run/httpd/scoreboard"]="root:root:0600"
+            )
+            ;;
+    esac
+
+    # Funzione helper per creare directory mancanti
+    create_directory() {
+        local dir="$1"
+        local perms="$2"
+        
+        if [ ! -d "$dir" ]; then
+            echo "Creando directory $dir..."
+            mkdir -p "$dir"
+            if [ $? -ne 0 ]; then
+                echo -e "${RED}Errore nella creazione della directory $dir${NC}"
+                return 1
+            fi
+        fi
+        return 0
+    }
+
+    # Funzione helper per impostare i permessi
+    set_permissions() {
+        local path="$1"
+        local owner_group="$2"
+        local mode="$3"
+        
+        # Estrai owner e group
+        IFS=: read -r owner group <<< "$owner_group"
+        
+        # Imposta owner e group
+        chown "$owner:$group" "$path"
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}Errore nell'impostazione owner/group per $path${NC}"
+            return 1
+        fi
+        
+        # Imposta permessi
+        chmod "$mode" "$path"
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}Errore nell'impostazione dei permessi per $path${NC}"
+            return 1
+        }
+        
+        return 0
+    }
+
+    # Processa ogni path critico
+    for path in "${!CRITICAL_PATHS[@]}"; do
+        echo "Processando $path..."
+        
+        # Estrai i permessi desiderati
+        IFS=: read -r owner group mode <<< "${CRITICAL_PATHS[$path]}"
+        
+        # Se è una directory, creala se non esiste
+        if [[ "$path" == */ ]] || [ ! -f "$path" ]; then
+            if ! create_directory "$path" "$mode"; then
+                continue
+            fi
+        fi
+        
+        # Imposta i permessi
+        if [ -e "$path" ]; then
+            # Rimuovi permessi globali pericolosi
+            chmod o-rwx "$path"
+            
+            # Imposta i permessi corretti
+            if set_permissions "$path" "$owner:$group" "$mode"; then
+                echo -e "${GREEN}Permessi impostati correttamente per $path${NC}"
+                echo "  Owner/Group: $owner:$group"
+                echo "  Mode: $mode"
+            fi
+        else
+            echo -e "${YELLOW}Path non trovato: $path${NC}"
+        fi
+    done
+
+    # Verifica particolare per le directory di core dump
+    if command -v systemctl >/dev/null 2>&1; then
+        echo "Configurando limiti core dump attraverso systemd..."
+        if ! grep -q "^DefaultLimitCORE=0" /etc/systemd/system.conf; then
+            echo "DefaultLimitCORE=0" >> /etc/systemd/system.conf
+            systemctl daemon-reexec
+            echo -e "${GREEN}Limiti core dump configurati${NC}"
+        fi
+    fi
+
+    # Verifica la configurazione di Apache per il core dump
+    local apache_conf
+    case $DISTRO in
+        debian)
+            apache_conf="/etc/apache2/apache2.conf"
+            ;;
+        redhat)
+            apache_conf="/etc/httpd/conf/httpd.conf"
+            ;;
+    esac
+
+    if [ -f "$apache_conf" ]; then
+        if ! grep -q "^CoreDumpDirectory" "$apache_conf"; then
+            echo "CoreDumpDirectory /var/crash" >> "$apache_conf"
+            echo -e "${GREEN}CoreDumpDirectory configurata in Apache${NC}"
+        fi
+    fi
+
+    echo "Protezione file critici completata"
+}
+
 secure_permissions() {
     echo "Implementando CIS 3 - Permessi e Proprietà..."
     
