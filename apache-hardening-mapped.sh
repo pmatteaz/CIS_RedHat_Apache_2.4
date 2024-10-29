@@ -768,7 +768,179 @@ main() {
     prevent_info_leakage
     configure_request_limits
     
-    # Riavvia Apache con la nuova configurazione
+# ------------------------------
+# Funzione per riavviare Apache in modo sicuro
+# Include verifiche pre e post riavvio
+# ------------------------------
+restart_apache() {
+    echo "Preparazione al riavvio di Apache..."
+    local config_test_passed=false
+    local restart_success=false
+    local max_restart_attempts=3
+    local restart_attempt=1
+    local apache_status
+    
+    # Backup della configurazione corrente
+    local backup_dir="/tmp/apache_backup_$(date +%Y%m%d_%H%M%S)"
+    local backup_success=false
+    
+    # Crea directory di backup
+    if mkdir -p "$backup_dir"; then
+        case $DISTRO in
+            debian)
+                if cp -r /etc/apache2/* "$backup_dir/"; then
+                    backup_success=true
+                fi
+                ;;
+            redhat)
+                if cp -r /etc/httpd/* "$backup_dir/"; then
+                    backup_success=true
+                fi
+                ;;
+        esac
+    fi
+    
+    if [ "$backup_success" = true ]; then
+        echo -e "${GREEN}Backup della configurazione creato in $backup_dir${NC}"
+    else
+        echo -e "${YELLOW}Warning: Impossibile creare il backup della configurazione${NC}"
+    fi
+
+    # Verifica la configurazione prima del riavvio
+    echo "Verificando la configurazione Apache..."
+    case $DISTRO in
+        debian)
+            apache2ctl configtest > /dev/null 2>&1
+            if [ $? -eq 0 ]; then
+                config_test_passed=true
+                echo -e "${GREEN}Verifica configurazione: OK${NC}"
+            else
+                echo -e "${RED}Errore nella configurazione Apache:${NC}"
+                apache2ctl configtest
+            fi
+            ;;
+        redhat)
+            httpd -t > /dev/null 2>&1
+            if [ $? -eq 0 ]; then
+                config_test_passed=true
+                echo -e "${GREEN}Verifica configurazione: OK${NC}"
+            else
+                echo -e "${RED}Errore nella configurazione Apache:${NC}"
+                httpd -t
+            fi
+            ;;
+    esac
+
+    # Se la configurazione non è valida, ripristina il backup
+    if [ "$config_test_passed" = false ]; then
+        echo -e "${RED}La configurazione contiene errori${NC}"
+        if [ "$backup_success" = true ]; then
+            echo "Ripristino della configurazione precedente..."
+            case $DISTRO in
+                debian)
+                    cp -r "$backup_dir"/* /etc/apache2/
+                    ;;
+                redhat)
+                    cp -r "$backup_dir"/* /etc/httpd/
+                    ;;
+            esac
+            echo -e "${GREEN}Configurazione precedente ripristinata${NC}"
+        fi
+        return 1
+    fi
+
+    # Verifica se Apache è in esecuzione
+    systemctl is-active --quiet $APACHE_SERVICE
+    apache_status=$?
+
+    # Tentativo di riavvio
+    while [ $restart_attempt -le $max_restart_attempts ] && [ "$restart_success" = false ]; do
+        echo "Tentativo di riavvio $restart_attempt di $max_restart_attempts..."
+        
+        # Se Apache è in esecuzione, prova prima un graceful restart
+        if [ $apache_status -eq 0 ]; then
+            echo "Apache è in esecuzione, tentativo di graceful restart..."
+            case $DISTRO in
+                debian)
+                    apache2ctl graceful
+                    ;;
+                redhat)
+                    httpd -k graceful
+                    ;;
+            esac
+            sleep 2
+        fi
+
+        # Riavvio completo del servizio
+        systemctl restart $APACHE_SERVICE
+        if [ $? -eq 0 ]; then
+            # Attendi che il servizio sia completamente avviato
+            sleep 2
+            systemctl is-active --quiet $APACHE_SERVICE
+            if [ $? -eq 0 ]; then
+                restart_success=true
+                break
+            fi
+        fi
+
+        ((restart_attempt++))
+        sleep 3
+    done
+
+    # Verifica post-riavvio
+    if [ "$restart_success" = true ]; then
+        echo -e "${GREEN}Apache riavviato con successo${NC}"
+        
+        # Verifica le porte in ascolto
+        echo "Verifica porte in ascolto..."
+        if command -v ss >/dev/null 2>&1; then
+            ss -tlnp | grep -E "(apache2|httpd)"
+        elif command -v netstat >/dev/null 2>&1; then
+            netstat -tlnp | grep -E "(apache2|httpd)"
+        fi
+        
+        # Verifica i processi
+        echo "Processi Apache in esecuzione:"
+        ps aux | grep -E "(apache2|httpd)" | grep -v grep
+        
+        # Verifica sintomi comuni di problemi
+        local error_log
+        case $DISTRO in
+            debian)
+                error_log="/var/log/apache2/error.log"
+                ;;
+            redhat)
+                error_log="/var/log/httpd/error.log"
+                ;;
+        esac
+        
+        echo "Ultimi errori nel log (se presenti):"
+        tail -n 5 "$error_log" | grep -i "error"
+        
+        return 0
+    else
+        echo -e "${RED}Impossibile riavviare Apache dopo $max_restart_attempts tentativi${NC}"
+        
+        # Ripristino backup se disponibile
+        if [ "$backup_success" = true ]; then
+            echo "Ripristino della configurazione precedente..."
+            case $DISTRO in
+                debian)
+                    cp -r "$backup_dir"/* /etc/apache2/
+                    systemctl restart apache2
+                    ;;
+                redhat)
+                    cp -r "$backup_dir"/* /etc/httpd/
+                    systemctl restart httpd
+                    ;;
+            esac
+            echo -e "${GREEN}Configurazione precedente ripristinata${NC}"
+        fi
+        
+        return 1
+    fi
+}
+
     restart_apache
     
     echo -e "${GREEN}Implementazione controlli CIS completata${NC}"
