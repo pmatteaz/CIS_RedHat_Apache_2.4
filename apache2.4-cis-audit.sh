@@ -41,6 +41,7 @@ print_result() {
         echo -e "[${RED}FAIL${NC}] $1"
         FAILED_CHECKS=$((FAILED_CHECKS + 1))
         ISSUES_FOUND+="❌ $1\n"
+        increment_section_issue $3 $1
         # Aggiungi suggerimenti specifici per la correzione
         case "$1" in
             *"ServerTokens"*)
@@ -108,9 +109,9 @@ check_pre_inst(){
     fi
     echo -e "${YELLOW}1.1 Pre-Installation Planning Checklist${NC}"
     if [ ! -f "$APACHE_PATH/installation_checklist.txt" ]; then
-        increment_section_issue 1 "1.1 - Checklist di pre-installazione non trovata"
+        print_result "1.1 - Checklist di pre-installazione non trovata" 1 1
     else
-        ((PASSED_CHECKS++))
+       print_result "1.1 - Checklist di pre-installazione non trovata" 0 1
     fi
 }
 # 1.2 Ensure the Server Is Not a Multi-Use System
@@ -118,11 +119,9 @@ check_not_multi(){
 print_section "1.2 Verifica Server Multi-Use"
 other_services=$(systemctl list-units --type=service --state=active | grep -vE "apache2|httpd")
 if [ -n "$other_services" ]; then
-    print_result "1.2 Server dedicato solo ad Apache" 1
-    increment_section_issue 1 "1.2 - Server utilizzato per altri servizi"
+    print_result "1.2 Server dedicato solo ad Apache" 1 1
 else
-    print_result "1.2 Server utilizzato per altri servizi" 0
-    ((PASSED_CHECKS++))
+    print_result "1.2 Server utilizzato per altri servizi" 0 1
 fi
 }
 
@@ -132,20 +131,16 @@ print_section "1.3 Verifica Installazione Apache"
 if [ "$DISTRO" = "debian" ]; then
     pkg_info=$(dpkg -s apache2 2>/dev/null)
     if [ $? -eq 0 ] && [[ "$pkg_info" =~ "ubuntu.com" ]] || [[ "$pkg_info" =~ "debian.org" ]]; then
-        print_result "1.3 Apache installato da repository ufficiali" 0
-        ((PASSED_CHECKS++))
+        print_result "1.3 Apache installato da repository ufficiali" 0 1
     else
-        print_result "1.3 Apache non installato da repository ufficiali" 1
-        increment_section_issue 1 "1.3 - Apache non installato da repository ufficiali"
+        print_result "1.3 Apache non installato da repository ufficiali" 1 1
     fi
 else
     pkg_info=$(rpm -qi httpd 2>/dev/null)
     if [ $? -eq 0 ] && [[ "$pkg_info" =~ "redhat.com" ]]; then
-        print_result "1.3 Apache installato da repository ufficiali" 0
-        ((PASSED_CHECKS++))
+        print_result "1.3 Apache installato da repository ufficiali" 0 1
     else
-        print_result "1.3 Apache non installato da repository ufficiali" 1
-        increment_section_issue 1 "1.3 - Apache non installato da repository ufficiali"
+        print_result "1.3 Apache non installato da repository ufficiali" 1 1
     fi
 fi
 }
@@ -175,11 +170,9 @@ check_auth_modules() {
     done
 
     if [ $enabled_auth -le 1 ]; then
-        print_result "2.1 Solo moduli di autenticazione necessari abilitati" 0
-        ((PASSED_CHECKS++))
+        print_result "2.1 Solo moduli di autenticazione necessari abilitati" 0 2
     else
-        print_result "2.1 Troppi moduli di autenticazione abilitati" 1
-        increment_section_issue 2 "2.1 - Troppi moduli di autenticazione abilitati"
+        print_result "2.1 Troppi moduli di autenticazione abilitati" 1 2
     fi
 }
 
@@ -192,11 +185,9 @@ check_log_config() {
     fi
 
     if [ -n "$log_mod" ]; then
-        print_result "2.2 Modulo log_config abilitato" 0
-        ((PASSED_CHECKS++))
+        print_result "2.2 Modulo log_config abilitato" 0 2
     else
-        print_result "2.2 Modulo log_config non abilitato" 1
-        increment_section_issue 2 "2.2 Modulo log_config non abilitato"
+        print_result "2.2 Modulo log_config non abilitato" 1 2
     fi
 }
 
@@ -219,9 +210,9 @@ check_webdav_modules() {
     done
 
     if [ $webdav_enabled -eq 0 ]; then
-        print_result "2.3 Moduli WebDAV disabilitati" 0
+        print_result "2.3 Moduli WebDAV disabilitati" 0 2
     else
-        print_result "2.3 Moduli WebDAV abilitati" 1
+        print_result "2.3 Moduli WebDAV abilitati" 1 2
     fi
 }
 
@@ -234,9 +225,9 @@ check_status_module() {
     fi
 
     if [ -z "$status_mod" ]; then
-        print_result "2.4 Modulo status disabilitato" 0
+        print_result "2.4 Modulo status disabilitato" 0 2
     else
-        print_result "2.4 Modulo status abilitato" 1
+        print_result "2.4 Modulo status abilitato" 1 2
     fi
 }
 
@@ -249,9 +240,9 @@ check_autoindex_module() {
     fi
 
     if [ -z "$autoindex_mod" ]; then
-        print_result "2.5 Modulo autoindex disabilitato" 0
+        print_result "2.5 Modulo autoindex disabilitato" 0 2
     else
-        print_result "2.5 Modulo autoindex abilitato" 1
+        print_result "2.5 Modulo autoindex abilitato" 1 2
     fi
 }
 
@@ -274,9 +265,9 @@ check_proxy_modules() {
     done
 
     if [ $proxy_enabled -eq 0 ]; then
-        print_result "2.6 Moduli proxy disabilitati" 0
+        print_result "2.6 Moduli proxy disabilitati" 0 2
     else
-        print_result "2.6 Moduli proxy abilitati" 1
+        print_result "2.6 Moduli proxy abilitati" 1 2
     fi
 }
 
@@ -289,9 +280,9 @@ check_userdir_module() {
     fi
 
     if [ -z "$userdir_mod" ]; then
-        print_result "2.7 Modulo userdir disabilitato" 0
+        print_result "2.7 Modulo userdir disabilitato" 0 2
     else
-        print_result "2.7 Modulo userdir abilitato" 1
+        print_result "2.7 Modulo userdir abilitato" 1 2
     fi
 }
 
@@ -304,9 +295,9 @@ check_info_module() {
     fi
 
     if [ -z "$info_mod" ]; then
-        print_result "2.8 Modulo info disabilitato" 0
+        print_result "2.8 Modulo info disabilitato" 0 2
     else
-        print_result "2.8 Modulo info abilitato" 1
+        print_result "2.8 Modulo info abilitato" 1 2
     fi
 }
 
@@ -329,9 +320,9 @@ check_auth_basic_digest() {
     done
 
     if [ $auth_enabled -eq 0 ]; then
-        print_result "2.9 Moduli auth_basic e auth_digest disabilitati" 0
+        print_result "2.9 Moduli auth_basic e auth_digest disabilitati" 0 2
     else
-        print_result "2.9 Moduli auth_basic o auth_digest abilitati" 1
+        print_result "2.9 Moduli auth_basic o auth_digest abilitati" 1 2
     fi
 }
 
@@ -359,9 +350,9 @@ check_non_root_user() {
     fi
 
     if [ "$apache_user" != "root" ] && [ -n "$apache_user" ]; then
-        print_result "3.1 Apache non esegue come root" 0
+        print_result "3.1 Apache non esegue come root" 0 3
     else
-        print_result "3.1 Apache potrebbe eseguire come root" 1
+        print_result "3.1 Apache potrebbe eseguire come root" 1 3
     fi
 }
 
@@ -370,9 +361,9 @@ check_invalid_shell() {
     local apache_shell=$(grep ^$APACHE_USER /etc/passwd | cut -d: -f7)
 
     if [ "$apache_shell" = "/sbin/nologin" ] || [ "$apache_shell" = "/usr/sbin/nologin" ] || [ "$apache_shell" = "/bin/false" ]; then
-        print_result "3.2 Apache user ha shell non valida" 0
+        print_result "3.2 Apache user ha shell non valida" 0 3
     else
-        print_result "3.2 Apache user ha shell valida" 1
+        print_result "3.2 Apache user ha shell valida" 1 3
     fi
 }
 
@@ -381,9 +372,9 @@ check_locked_account() {
     local account_status=$(passwd -S $APACHE_USER 2>/dev/null | awk '{print $2}')
 
     if [ "$account_status" = "L" ] || [ "$account_status" = "LK" ]; then
-        print_result "3.3 Account Apache bloccato" 0
+        print_result "3.3 Account Apache bloccato" 0 3
     else
-        print_result "3.3 Account Apache non bloccato" 1
+        print_result "3.3 Account Apache non bloccato" 1 3
     fi
 }
 
@@ -404,9 +395,9 @@ check_root_ownership() {
     done
 
     if [ $incorrect_ownership -eq 0 ]; then
-        print_result "3.4 Tutti i file e directory sono di proprietà di root" 0
+        print_result "3.4 Tutti i file e directory sono di proprietà di root" 0 3
     else
-        print_result "3.4 Alcuni file o directory non sono di proprietà di root" 1
+        print_result "3.4 Alcuni file o directory non sono di proprietà di root" 1 3
     fi
 }
 
@@ -427,9 +418,9 @@ check_group_ownership() {
     done
 
     if [ $incorrect_group -eq 0 ]; then
-        print_result "3.5 Gruppo impostato correttamente" 0
+        print_result "3.5 Gruppo impostato correttamente" 0 3
     else
-        print_result "3.5 Gruppo non impostato correttamente su alcuni elementi" 1
+        print_result "3.5 Gruppo non impostato correttamente su alcuni elementi" 1 3
     fi
 }
 
@@ -443,9 +434,9 @@ check_other_write_access() {
     done
 
     if [ $write_access_found -eq 0 ]; then
-        print_result "3.6 Nessun accesso in scrittura per altri" 0
+        print_result "3.6 Nessun accesso in scrittura per altri" 0 3
     else
-        print_result "3.6 Trovato accesso in scrittura per altri" 1
+        print_result "3.6 Trovato accesso in scrittura per altri" 1 3
     fi
 }
 
@@ -464,11 +455,12 @@ check_core_dump_dir() {
 
         if [ "$owner" = "root" ] && [ "$perms" = "700" ]; then
             print_result "3.7 Directory core dump configurata correttamente" 0
+            ((PASSED_CHECKS++))
         else
-            print_result "3.7 Directory core dump non sicura" 1
+            print_result "3.7 Directory core dump non sicura" 1 3
         fi
     else
-        print_result "3.7 Directory core dump non configurata" 0
+        print_result "3.7 Directory core dump non configurata" 0 3
     fi
 }
 
@@ -486,12 +478,12 @@ check_lock_file() {
         local owner=$(stat -c %U "$lock_file")
 
         if [ "$owner" = "root" ] && [ "$perms" = "600" ]; then
-            print_result "3.8 File di lock configurato correttamente" 0
+            print_result "3.8 File di lock configurato correttamente" 0 3
         else
-            print_result "3.8 File di lock non sicuro" 1
+            print_result "3.8 File di lock non sicuro" 1 3
         fi
     else
-        print_result "3.8 File di lock non trovato" 0
+        print_result "3.8 File di lock non trovato" 0 3
     fi
 }
 
@@ -509,12 +501,12 @@ check_pid_file() {
         local owner=$(stat -c %U "$pid_file")
 
         if [ "$owner" = "root" ] && [ "$perms" = "644" ]; then
-            print_result "3.9 File pid configurato correttamente" 0
+            print_result "3.9 File pid configurato correttamente" 0 3
         else
-            print_result "3.9 File pid non sicuro" 1
+            print_result "3.9 File pid non sicuro" 1 3
         fi
     else
-        print_result "3.9 File pid non trovato" 0
+        print_result "3.9 File pid non trovato" 0 3
     fi
 }
 
@@ -527,12 +519,12 @@ check_scoreboard_file() {
         local owner=$(stat -c %U "$scoreboard_path")
 
         if [ "$owner" = "root" ] && [ "$perms" = "600" ]; then
-            print_result "3.10 File scoreboard configurato correttamente" 0
+            print_result "3.10 File scoreboard configurato correttamente" 0 3
         else
-            print_result "3.10 File scoreboard non sicuro" 1
+            print_result "3.10 File scoreboard non sicuro" 1 3
         fi
     else
-        print_result "3.10 File scoreboard non trovato" 0
+        print_result "3.10 File scoreboard non trovato" 0 3
     fi
 }
 
@@ -546,9 +538,9 @@ check_group_write_access() {
     done
 
     if [ $group_write_found -eq 0 ]; then
-        print_result "3.11 Nessun accesso in scrittura per il gruppo" 0
+        print_result "3.11 Nessun accesso in scrittura per il gruppo" 0 3
     else
-        print_result "3.11 Trovato accesso in scrittura per il gruppo" 1
+        print_result "3.11 Trovato accesso in scrittura per il gruppo" 1 3
     fi
 }
 
@@ -569,9 +561,9 @@ check_docroot_group_write() {
     done
 
     if [ $group_write_found -eq 0 ]; then
-        print_result "3.12 Nessun accesso in scrittura per il gruppo nella DocumentRoot" 0
+        print_result "3.12 Nessun accesso in scrittura per il gruppo nella DocumentRoot" 0 3
     else
-        print_result "3.12 Trovato accesso in scrittura per il gruppo nella DocumentRoot" 1
+        print_result "3.12 Trovato accesso in scrittura per il gruppo nella DocumentRoot" 1 3
     fi
 }
 
@@ -599,9 +591,9 @@ check_special_directories() {
     done
 
     if [ $issues_found -eq 0 ]; then
-        print_result "3.13 Directory speciali configurate correttamente" 0
+        print_result "3.13 Directory speciali configurate correttamente" 0 3
     else
-        print_result "3.13 Directory speciali non configurate correttamente" 1
+        print_result "3.13 Directory speciali non configurate correttamente" 1 3
     fi
 }
 
@@ -633,9 +625,9 @@ check_os_root_access() {
     fi
 
     if [[ "$root_dir_conf" =~ "Require all denied" ]] || [[ "$root_dir_conf" =~ "deny from all" ]]; then
-        print_result "4.1 Accesso alla directory root OS negato correttamente" 0
+        print_result "4.1 Accesso alla directory root OS negato correttamente" 0 4
     else
-        print_result "4.1 Accesso alla directory root OS non negato correttamente" 1
+        print_result "4.1 Accesso alla directory root OS non negato correttamente" 1 4
     fi
 }
 
@@ -676,9 +668,9 @@ check_web_content_access() {
     fi
 
     if [ $issues_found -eq 0 ]; then
-        print_result "4.2 Accesso al contenuto web configurato correttamente" 0
+        print_result "4.2 Accesso al contenuto web configurato correttamente" 0 4
     else
-        print_result "4.2 Accesso al contenuto web non configurato correttamente" 1
+        print_result "4.2 Accesso al contenuto web non configurato correttamente" 1 4
     fi
 }
 
@@ -692,9 +684,9 @@ check_root_override() {
     fi
 
     if [[ "$root_dir_conf" =~ "AllowOverride None" ]]; then
-        print_result "4.3 AllowOverride disabilitato per directory root OS" 0
+        print_result "4.3 AllowOverride disabilitato per directory root OS" 0 4
     else
-        print_result "4.3 AllowOverride non disabilitato per directory root OS" 1
+        print_result "4.3 AllowOverride non disabilitato per directory root OS" 1 4
     fi
 }
 
@@ -719,9 +711,9 @@ check_all_directories_override() {
     done
 
     if [ $override_issues -eq 0 ]; then
-        print_result "4.4 AllowOverride disabilitato per tutte le directory" 0
+        print_result "4.4 AllowOverride disabilitato per tutte le directory" 0 4
     else
-        print_result "4.4 AllowOverride non disabilitato per tutte le directory" 1
+        print_result "4.4 AllowOverride non disabilitato per tutte le directory" 1 4
     fi
 }
 
@@ -747,9 +739,9 @@ check_root_options() {
     fi
 
     if [[ "$root_dir_conf" =~ "Options None" ]] || [[ "$root_dir_conf" =~ "Options -" ]]; then
-        print_result "5.1 Options per directory root OS correttamente limitate" 0
+        print_result "5.1 Options per directory root OS correttamente limitate" 0 5
     else
-        print_result "5.1 Options per directory root OS non limitate correttamente" 1
+        print_result "5.1 Options per directory root OS non limitate correttamente" 1 5
     fi
 }
 
@@ -767,12 +759,12 @@ check_webroot_options() {
         webroot_conf=$(grep -r "<Directory $doc_root>" "$APACHE_PATH" -A10)
         if [[ "$webroot_conf" =~ "Options None" ]] || [[ "$webroot_conf" =~ "Options -" ]] ||
            [[ "$webroot_conf" =~ "Options -Indexes -FollowSymLinks" ]]; then
-            print_result "5.2 Options per DocumentRoot correttamente limitate" 0
+            print_result "5.2 Options per DocumentRoot correttamente limitate" 0 5
         else
-            print_result "5.2 Options per DocumentRoot non limitate correttamente" 1
+            print_result "5.2 Options per DocumentRoot non limitate correttamente" 1 5
         fi
     else
-        print_result "5.2 DocumentRoot non trovata" 1
+        print_result "5.2 DocumentRoot non trovata" 1 5
     fi
 }
 
@@ -801,9 +793,9 @@ check_other_directories_options() {
     done
 
     if [ $issues_found -eq 0 ]; then
-        print_result "5.3 Options minimizzate per tutte le directory" 0
+        print_result "5.3 Options minimizzate per tutte le directory" 0 5
     else
-        print_result "5.3 Options non minimizzate per alcune directory" 1
+        print_result "5.3 Options non minimizzate per alcune directory" 1 5
     fi
 }
 
@@ -827,9 +819,9 @@ check_default_content() {
     done
 
     if [ $default_content_found -eq 0 ]; then
-        print_result "5.4 Nessun contenuto HTML di default trovato" 0
+        print_result "5.4 Nessun contenuto HTML di default trovato" 0 5
     else
-        print_result "5.4 Contenuto HTML di default presente" 1
+        print_result "5.4 Contenuto HTML di default presente" 1 5
     fi
 }
 
@@ -848,9 +840,9 @@ check_printenv_script() {
     done
 
     if [ $script_found -eq 0 ]; then
-        print_result "5.5 Script printenv non trovato" 0
+        print_result "5.5 Script printenv non trovato" 0 5
     else
-        print_result "5.5 Script printenv presente" 1
+        print_result "5.5 Script printenv presente" 1 5
     fi
 }
 
@@ -867,9 +859,9 @@ check_test_cgi() {
     done
 
     if [ $script_found -eq 0 ]; then
-        print_result "5.6 Script test-cgi non trovato" 0
+        print_result "5.6 Script test-cgi non trovato" 0 5
     else
-        print_result "5.6 Script test-cgi presente" 1
+        print_result "5.6 Script test-cgi presente" 1 5
     fi
 }
 
@@ -893,9 +885,9 @@ check_http_methods() {
     done
 
     if [ $method_restriction_found -eq 1 ]; then
-        print_result "5.7 Metodi HTTP correttamente limitati" 0
+        print_result "5.7 Metodi HTTP correttamente limitati" 0 5
     else
-        print_result "5.7 Metodi HTTP non limitati" 1
+        print_result "5.7 Metodi HTTP non limitati" 1 5
     fi
 }
 
@@ -913,9 +905,9 @@ check_trace_method() {
     fi
 
     if [ $trace_disabled -eq 1 ]; then
-        print_result "5.8 Metodo TRACE disabilitato" 0
+        print_result "5.8 Metodo TRACE disabilitato" 0 5
     else
-        print_result "5.8 Metodo TRACE non disabilitato" 1
+        print_result "5.8 Metodo TRACE non disabilitato" 1 5
     fi
 }
 
@@ -933,9 +925,9 @@ check_old_protocols() {
     fi
 
     if [ $protocols_restricted -eq 1 ]; then
-        print_result "5.9 Versioni vecchie protocollo HTTP disabilitate" 0
+        print_result "5.9 Versioni vecchie protocollo HTTP disabilitate" 0 5
     else
-        print_result "5.9 Versioni vecchie protocollo HTTP potrebbero essere abilitate" 1
+        print_result "5.9 Versioni vecchie protocollo HTTP potrebbero essere abilitate" 1 5
     fi
 }
 
@@ -962,9 +954,9 @@ check_htaccess_access() {
     done
 
     if [ $htaccess_protected -eq 1 ]; then
-        print_result "5.10 Accesso ai file .ht* correttamente limitato" 0
+        print_result "5.10 Accesso ai file .ht* correttamente limitato" 0 5
     else
-        print_result "5.10 Accesso ai file .ht* non limitato" 1
+        print_result "5.10 Accesso ai file .ht* non limitato" 1 5
     fi
 }
 
@@ -991,9 +983,9 @@ check_git_access() {
     done
 
     if [ $git_protected -eq 1 ]; then
-        print_result "5.11 Accesso ai file .git correttamente limitato" 0
+        print_result "5.11 Accesso ai file .git correttamente limitato" 0 5
     else
-        print_result "5.11 Accesso ai file .git non limitato" 1
+        print_result "5.11 Accesso ai file .git non limitato" 1 5
     fi
 }
 
@@ -1020,9 +1012,9 @@ check_svn_access() {
     done
 
     if [ $svn_protected -eq 1 ]; then
-        print_result "5.12 Accesso ai file .svn correttamente limitato" 0
+        print_result "5.12 Accesso ai file .svn correttamente limitato" 0 5
     else
-        print_result "5.12 Accesso ai file .svn non limitato" 1
+        print_result "5.12 Accesso ai file .svn non limitato" 1 5
     fi
 }
 
@@ -1052,9 +1044,9 @@ check_inappropriate_extensions() {
     done
 
     if [ $extensions_protected -eq 1 ]; then
-        print_result "5.13 Accesso a estensioni inappropriate limitato" 0
+        print_result "5.13 Accesso a estensioni inappropriate limitato" 0 5
     else
-        print_result "5.13 Accesso a estensioni inappropriate non limitato" 1
+        print_result "5.13 Accesso a estensioni inappropriate non limitato" 1 5
     fi
 }
 
@@ -1081,9 +1073,9 @@ check_ip_requests() {
     done
 
     if [ $ip_requests_blocked -eq 1 ]; then
-        print_result "5.14 Richieste basate su IP bloccate" 0
+        print_result "5.14 Richieste basate su IP bloccate" 0 5
     else
-        print_result "5.14 Richieste basate su IP non bloccate" 1
+        print_result "5.14 Richieste basate su IP non bloccate" 1 5
     fi
 }
 
@@ -1108,9 +1100,9 @@ check_listen_addresses() {
     done
 
     if [ $listen_specified -eq 1 ]; then
-        print_result "5.15 Indirizzi IP per ascolto specificati" 0
+        print_result "5.15 Indirizzi IP per ascolto specificati" 0 5
     else
-        print_result "5.15 Indirizzi IP per ascolto non specificati" 1
+        print_result "5.15 Indirizzi IP per ascolto non specificati" 1 5
     fi
 }
 
@@ -1137,9 +1129,9 @@ check_browser_framing() {
     done
 
     if [ $frame_options_set -eq 1 ]; then
-        print_result "5.16 Frame Options configurato correttamente" 0
+        print_result "5.16 Frame Options configurato correttamente" 0 5
     else
-        print_result "5.16 Frame Options non configurato" 1
+        print_result "5.16 Frame Options non configurato" 1 5
     fi
 }
 
@@ -1166,9 +1158,10 @@ check_referrer_policy() {
     done
 
     if [ $referrer_policy_set -eq 1 ]; then
-        print_result "5.17 Referrer-Policy configurato correttamente" 0
+        print_result "5.17 Referrer-Policy configurato correttamente" 0 5
+        ((PASSED_CHECKS++))
     else
-        print_result "5.17 Referrer-Policy non configurato" 1
+        print_result "5.17 Referrer-Policy non configurato" 1 5
     fi
 }
 
@@ -1193,9 +1186,9 @@ check_permissions_policy() {
     done
 
     if [ $permissions_policy_set -eq 1 ]; then
-        print_result "5.18 Permissions-Policy configurato" 0
+        print_result "5.18 Permissions-Policy configurato" 0 5
     else
-        print_result "5.18 Permissions-Policy non configurato" 1
+        print_result "5.18 Permissions-Policy non configurato" 1 5
     fi
 }
 
@@ -1250,9 +1243,9 @@ check_error_log_config() {
     done
 
     if [ $error_log_configured -eq 1 ] && [ $severity_configured -eq 1 ]; then
-        print_result "6.1 Error Log configurato correttamente" 0
+        print_result "6.1 Error Log configurato correttamente" 0 6
     else
-        print_result "6.1 Error Log non configurato correttamente" 1
+        print_result "6.1 Error Log non configurato correttamente" 1 6
     fi
 }
 
@@ -1277,9 +1270,9 @@ check_syslog_facility() {
     done
 
     if [ $syslog_configured -eq 1 ]; then
-        print_result "6.2 Syslog facility configurata" 0
+        print_result "6.2 Syslog facility configurata" 0 6
     else
-        print_result "6.2 Syslog facility non configurata" 1
+        print_result "6.2 Syslog facility non configurata" 1 6
     fi
 }
 
@@ -1306,9 +1299,9 @@ check_access_log_config() {
     done
 
     if [ $access_log_configured -eq 1 ]; then
-        print_result "6.3 Access Log configurato correttamente" 0
+        print_result "6.3 Access Log configurato correttamente" 0 6
     else
-        print_result "6.3 Access Log non configurato correttamente" 1
+        print_result "6.3 Access Log non configurato correttamente" 1 6
     fi
 }
 
@@ -1324,12 +1317,12 @@ check_log_rotation_config() {
     if [ -f "$logrotate_conf" ]; then
         # Verifica rotazione
         if grep -q "rotate" "$logrotate_conf" && grep -q "weekly\|daily" "$logrotate_conf"; then
-            print_result "6.4 Log rotation configurata correttamente" 0
+            print_result "6.4 Log rotation configurata correttamente" 0 6
         else
-            print_result "6.4 Log rotation non configurata correttamente" 1
+            print_result "6.4 Log rotation non configurata correttamente" 1 6
         fi
     else
-        print_result "6.4 File configurazione logrotate non trovato" 1
+        print_result "6.4 File configurazione logrotate non trovato" 1 6
     fi
 }
 
@@ -1362,9 +1355,9 @@ check_modsecurity() {
     fi
 
     if [ $modsec_installed -eq 1 ]; then
-        print_result "6.6 ModSecurity installato e abilitato" 0
+        print_result "6.6 ModSecurity installato e abilitato" 0 6
     else
-        print_result "6.6 ModSecurity non installato o non abilitato" 1
+        print_result "6.6 ModSecurity non installato o non abilitato" 1 6
     fi
 }
 
@@ -1383,9 +1376,9 @@ check_owasp_crs() {
     done
 
     if [ $crs_installed -eq 1 ]; then
-        print_result "6.7 OWASP ModSecurity CRS installato" 0
+        print_result "6.7 OWASP ModSecurity CRS installato" 0 6
     else
-        print_result "6.7 OWASP ModSecurity CRS non installato" 1
+        print_result "6.7 OWASP ModSecurity CRS non installato" 1 6
     fi
 }
 
@@ -1417,9 +1410,9 @@ check_ssl_modules() {
     fi
 
     if [ $ssl_installed -eq 1 ]; then
-        print_result "7.1 mod_ssl o mod_nss installato" 0
+        print_result "7.1 mod_ssl o mod_nss installato" 0 7
     else
-        print_result "7.1 mod_ssl o mod_nss non installato" 1
+        print_result "7.1 mod_ssl o mod_nss non installato" 1 7
     fi
 }
 
@@ -1446,9 +1439,9 @@ check_ssl_certificate() {
     fi
 
     if [ $cert_valid -eq 1 ]; then
-        print_result "7.2 Certificato SSL valido installato" 0
+        print_result "7.2 Certificato SSL valido installato" 0 7
     else
-        print_result "7.2 Certificato SSL non valido o non trovato" 1
+        print_result "7.2 Certificato SSL non valido o non trovato" 1 7
     fi
 }
 
@@ -1476,9 +1469,9 @@ check_private_key_protection() {
     fi
 
     if [ $key_protected -eq 1 ]; then
-        print_result "7.3 Chiave privata protetta correttamente" 0
+        print_result "7.3 Chiave privata protetta correttamente" 0 7
     else
-        print_result "7.3 Chiave privata non protetta correttamente" 1
+        print_result "7.3 Chiave privata non protetta correttamente" 1 5
     fi
 }
 
@@ -1502,9 +1495,9 @@ check_tls_version() {
     fi
 
     if [ $tls_secure -eq 1 ]; then
-        print_result "7.4 TLSv1.0 e TLSv1.1 disabilitati" 0
+        print_result "7.4 TLSv1.0 e TLSv1.1 disabilitati" 0 7
     else
-        print_result "7.4 TLSv1.0 o TLSv1.1 potrebbero essere abilitati" 1
+        print_result "7.4 TLSv1.0 o TLSv1.1 potrebbero essere abilitati" 1 7
     fi
 }
 
@@ -1528,9 +1521,9 @@ check_weak_ciphers() {
     fi
 
     if [ $strong_ciphers -eq 1 ]; then
-        print_result "7.5 Cipher suite configurata in modo sicuro" 0
+        print_result "7.5 Cipher suite configurata in modo sicuro" 0 7
     else
-        print_result "7.5 Possibili cipher deboli abilitati" 1
+        print_result "7.5 Possibili cipher deboli abilitati" 1 7
     fi
 }
 
@@ -1552,9 +1545,9 @@ check_ssl_renegotiation() {
     fi
 
     if [ $secure_reneg -eq 1 ]; then
-        print_result "7.6 Rinegoziazione SSL sicura" 0
+        print_result "7.6 Rinegoziazione SSL sicura" 0 7
     else
-        print_result "7.6 Rinegoziazione SSL insicura potrebbe essere abilitata" 1
+        print_result "7.6 Rinegoziazione SSL insicura potrebbe essere abilitata" 1 7
     fi
 }
 
@@ -1576,9 +1569,9 @@ check_ssl_compression() {
     fi
 
     if [ $compression_disabled -eq 1 ]; then
-        print_result "7.7 Compressione SSL disabilitata" 0
+        print_result "7.7 Compressione SSL disabilitata" 0 7
     else
-        print_result "7.7 Compressione SSL potrebbe essere abilitata" 1
+        print_result "7.7 Compressione SSL potrebbe essere abilitata" 1 7
     fi
 }
 
@@ -1602,9 +1595,9 @@ check_medium_ciphers() {
     fi
 
     if [ $secure_ciphers -eq 1 ]; then
-        print_result "7.8 Cipher di media forza disabilitati" 0
+        print_result "7.8 Cipher di media forza disabilitati" 0 7
     else
-        print_result "7.8 Cipher di media forza potrebbero essere abilitati" 1
+        print_result "7.8 Cipher di media forza potrebbero essere abilitati" 1 7
     fi
 }
 
@@ -1629,9 +1622,9 @@ check_https_only() {
     done
 
     if [ $https_enforced -eq 1 ]; then
-        print_result "7.9 Reindirizzamento HTTPS configurato" 0
+        print_result "7.9 Reindirizzamento HTTPS configurato" 0 7
     else
-        print_result "7.9 Reindirizzamento HTTPS non configurato" 1
+        print_result "7.9 Reindirizzamento HTTPS non configurato" 1 7
     fi
 }
 
@@ -1653,9 +1646,9 @@ check_ocsp_stapling() {
     fi
 
     if [ $stapling_enabled -eq 1 ]; then
-        print_result "7.10 OCSP Stapling abilitato" 0
+        print_result "7.10 OCSP Stapling abilitato" 0 7
     else
-        print_result "7.10 OCSP Stapling non abilitato" 1
+        print_result "7.10 OCSP Stapling non abilitato" 1 7
     fi
 }
 
@@ -1678,9 +1671,9 @@ check_hsts() {
     done
 
     if [ $hsts_enabled -eq 1 ]; then
-        print_result "7.11 HSTS abilitato" 0
+        print_result "7.11 HSTS abilitato" 0 7
     else
-        print_result "7.11 HSTS non abilitato" 1
+        print_result "7.11 HSTS non abilitato" 1 7
     fi
 }
 
@@ -1702,9 +1695,9 @@ check_forward_secrecy() {
     fi
 
     if [ $forward_secrecy -eq 1 ]; then
-        print_result "7.12 Forward Secrecy abilitato" 0
+        print_result "7.12 Forward Secrecy abilitato" 0 7
     else
-        print_result "7.12 Forward Secrecy non abilitato" 1
+        print_result "7.12 Forward Secrecy non abilitato" 1 7
     fi
 }
 
@@ -1745,9 +1738,9 @@ check_server_tokens() {
     done
 
     if [ $tokens_secure -eq 1 ]; then
-        print_result "8.1 ServerTokens impostato correttamente" 0
+        print_result "8.1 ServerTokens impostato correttamente" 0 8
     else
-        print_result "8.1 ServerTokens non impostato correttamente" 1
+        print_result "8.1 ServerTokens non impostato correttamente" 1 8
     fi
 }
 
@@ -1770,9 +1763,9 @@ check_server_signature() {
     done
 
     if [ $signature_disabled -eq 1 ]; then
-        print_result "8.2 ServerSignature disabilitato" 0
+        print_result "8.2 ServerSignature disabilitato" 0 8
     else
-        print_result "8.2 ServerSignature non disabilitato" 1
+        print_result "8.2 ServerSignature non disabilitato" 1 8
     fi
 }
 
@@ -1792,9 +1785,9 @@ check_default_content() {
     done
 
     if [ $default_content_found -eq 0 ]; then
-        print_result "8.3 Nessun contenuto di default trovato" 0
+        print_result "8.3 Nessun contenuto di default trovato" 0 8
     else
-        print_result "8.3 Contenuto di default presente" 1
+        print_result "8.3 Contenuto di default presente" 1 8
     fi
 }
 
@@ -1819,9 +1812,9 @@ check_etag_headers() {
     done
 
     if [ $etag_secure -eq 1 ]; then
-        print_result "8.4 ETag configurato in modo sicuro" 0
+        print_result "8.4 ETag configurato in modo sicuro" 0 8
     else
-        print_result "8.4 ETag potrebbe includere Inodes" 1
+        print_result "8.4 ETag potrebbe includere Inodes" 1 8
     fi
 }
 
@@ -1856,9 +1849,9 @@ check_timeout() {
     done
 
     if [ $timeout_secure -eq 1 ]; then
-        print_result "9.1 Timeout configurato correttamente (≤10)" 0
+        print_result "9.1 Timeout configurato correttamente (≤10)" 0 9
     else
-        print_result "9.1 Timeout non configurato correttamente" 1
+        print_result "9.1 Timeout non configurato correttamente" 1 9
     fi
 }
 
@@ -1881,9 +1874,9 @@ check_keepalive() {
     done
 
     if [ $keepalive_enabled -eq 1 ]; then
-        print_result "9.2 KeepAlive abilitato" 0
+        print_result "9.2 KeepAlive abilitato" 0 9
     else
-        print_result "9.2 KeepAlive non abilitato" 1
+        print_result "9.2 KeepAlive non abilitato" 1 9
     fi
 }
 
@@ -1909,9 +1902,9 @@ check_max_keepalive_requests() {
     done
 
     if [ $max_keepalive_secure -eq 1 ]; then
-        print_result "9.3 MaxKeepAliveRequests configurato correttamente (≥100)" 0
+        print_result "9.3 MaxKeepAliveRequests configurato correttamente (≥100)" 0 9
     else
-        print_result "9.3 MaxKeepAliveRequests non configurato correttamente" 1
+        print_result "9.3 MaxKeepAliveRequests non configurato correttamente" 1 9
     fi
 }
 
@@ -1937,9 +1930,9 @@ check_keepalive_timeout() {
     done
 
     if [ $keepalive_timeout_secure -eq 1 ]; then
-        print_result "9.4 KeepAliveTimeout configurato correttamente (≤15)" 0
+        print_result "9.4 KeepAliveTimeout configurato correttamente (≤15)" 0 9
     else
-        print_result "9.4 KeepAliveTimeout non configurato correttamente" 1
+        print_result "9.4 KeepAliveTimeout non configurato correttamente" 1 9
     fi
 }
 
@@ -1965,9 +1958,9 @@ check_request_headers_timeout() {
     done
 
     if [ $headers_timeout_secure -eq 1 ]; then
-        print_result "9.5 Request Headers Timeout configurato correttamente (≤40)" 0
+        print_result "9.5 Request Headers Timeout configurato correttamente (≤40)" 0 9
     else
-        print_result "9.5 Request Headers Timeout non configurato correttamente" 1
+        print_result "9.5 Request Headers Timeout non configurato correttamente" 1 9
     fi
 }
 
@@ -1993,9 +1986,9 @@ check_request_body_timeout() {
     done
 
     if [ $body_timeout_secure -eq 1 ]; then
-        print_result "9.6 Request Body Timeout configurato correttamente (≤20)" 0
+        print_result "9.6 Request Body Timeout configurato correttamente (≤20)" 0 9
     else
-        print_result "9.6 Request Body Timeout non configurato correttamente" 1
+        print_result "9.6 Request Body Timeout non configurato correttamente" 1 9
     fi
 }
 
@@ -2033,9 +2026,9 @@ check_limit_request_line() {
     done
 
     if [ $request_line_secure -eq 1 ]; then
-        print_result "10.1 LimitRequestLine configurato correttamente (≤512)" 0
+        print_result "10.1 LimitRequestLine configurato correttamente (≤512)" 0 10
     else
-        print_result "10.1 LimitRequestLine non configurato correttamente" 1
+        print_result "10.1 LimitRequestLine non configurato correttamente" 1 10
     fi
 }
 
@@ -2061,9 +2054,9 @@ check_limit_request_fields() {
     done
 
     if [ $request_fields_secure -eq 1 ]; then
-        print_result "10.2 LimitRequestFields configurato correttamente (≤100)" 0
+        print_result "10.2 LimitRequestFields configurato correttamente (≤100)" 0 10
     else
-        print_result "10.2 LimitRequestFields non configurato correttamente" 1
+        print_result "10.2 LimitRequestFields non configurato correttamente" 1 10
     fi
 }
 
@@ -2089,9 +2082,9 @@ check_limit_request_fieldsize() {
     done
 
     if [ $request_fieldsize_secure -eq 1 ]; then
-        print_result "10.3 LimitRequestFieldSize configurato correttamente (≤1024)" 0
+        print_result "10.3 LimitRequestFieldSize configurato correttamente (≤1024)" 0 10 
     else
-        print_result "10.3 LimitRequestFieldSize non configurato correttamente" 1
+        print_result "10.3 LimitRequestFieldSize non configurato correttamente" 1 10
     fi
 }
 
@@ -2117,9 +2110,9 @@ check_limit_request_body() {
     done
 
     if [ $request_body_secure -eq 1 ]; then
-        print_result "10.4 LimitRequestBody configurato correttamente (≤102400)" 0
+        print_result "10.4 LimitRequestBody configurato correttamente (≤102400)" 0 10
     else
-        print_result "10.4 LimitRequestBody non configurato correttamente" 1
+        print_result "10.4 LimitRequestBody non configurato correttamente" 1 10
     fi
 }
 
@@ -2137,12 +2130,12 @@ check_selinux_enforcing() {
     if command -v getenforce >/dev/null 2>&1; then
         local selinux_mode=$(getenforce)
         if [ "$selinux_mode" = "Enforcing" ]; then
-            print_result "11.1 SELinux è in modalità Enforcing" 0
+            print_result "11.1 SELinux è in modalità Enforcing" 0 11
         else
-            print_result "11.1 SELinux non è in modalità Enforcing ($selinux_mode)" 1
+            print_result "11.1 SELinux non è in modalità Enforcing ($selinux_mode)" 1 11
         fi
     else
-        print_result "11.1 SELinux non installato" 1
+        print_result "11.1 SELinux non installato" 1 11
     fi
 }
 
@@ -2151,12 +2144,12 @@ check_httpd_context() {
     if command -v ps >/dev/null 2>&1 && command -v grep >/dev/null 2>&1; then
         local httpd_context=$(ps axZ | grep httpd | grep -v grep)
         if echo "$httpd_context" | grep -q "httpd_t"; then
-            print_result "11.2 Processi Apache in esecuzione nel contesto httpd_t" 0
+            print_result "11.2 Processi Apache in esecuzione nel contesto httpd_t" 0 11
         else
-            print_result "11.2 Processi Apache non in esecuzione nel contesto httpd_t" 1
+            print_result "11.2 Processi Apache non in esecuzione nel contesto httpd_t" 1 11
         fi
     else
-        print_result "11.2 Impossibile verificare il contesto SELinux" 1
+        print_result "11.2 Impossibile verificare il contesto SELinux" 1 11
     fi
 }
 
@@ -2164,12 +2157,12 @@ check_httpd_context() {
 check_httpd_permissive() {
     if command -v semanage >/dev/null 2>&1; then
         if semanage permissive -l | grep -q "httpd_t"; then
-            print_result "11.3 httpd_t è in modalità permissiva" 1
+            print_result "11.3 httpd_t è in modalità permissiva" 1 11
         else
-            print_result "11.3 httpd_t non è in modalità permissiva" 0
+            print_result "11.3 httpd_t non è in modalità permissiva" 0 11
         fi
     else
-        print_result "11.3 Impossibile verificare la modalità permissiva di httpd_t" 1
+        print_result "11.3 Impossibile verificare la modalità permissiva di httpd_t" 1 11
     fi
 }
 
@@ -2195,12 +2188,12 @@ check_selinux_booleans() {
         done
 
         if [ $issues_found -eq 0 ]; then
-            print_result "11.4 Nessun boolean SELinux non necessario abilitato" 0
+            print_result "11.4 Nessun boolean SELinux non necessario abilitato" 0 11
         else
-            print_result "11.4 Boolean SELinux non necessari abilitati" 1
+            print_result "11.4 Boolean SELinux non necessari abilitati" 1 11
         fi
     else
-        print_result "11.4 Impossibile verificare i boolean SELinux" 1
+        print_result "11.4 Impossibile verificare i boolean SELinux" 1 11
     fi
 }
 
@@ -2218,12 +2211,12 @@ print_section "12 AppArmor Configuration"
 check_apparmor_enabled() {
     if command -v aa-status >/dev/null 2>&1; then
         if aa-status --enabled 2>/dev/null; then
-            print_result "12.1 AppArmor è abilitato" 0
+            print_result "12.1 AppArmor è abilitato" 0 12
         else
-            print_result "12.1 AppArmor non è abilitato" 1
+            print_result "12.1 AppArmor non è abilitato" 1 12
         fi
     else
-        print_result "12.1 AppArmor non installato" 1
+        print_result "12.1 AppArmor non installato" 1 12
     fi
 }
 
@@ -2253,12 +2246,12 @@ check_apache_apparmor_profile() {
         fi
 
         if [ $issues_found -eq 0 ]; then
-            print_result "12.2 Profilo AppArmor di Apache configurato correttamente" 0
+            print_result "12.2 Profilo AppArmor di Apache configurato correttamente" 0 12
         else
-            print_result "12.2 Profilo AppArmor di Apache non configurato correttamente" 1
+            print_result "12.2 Profilo AppArmor di Apache non configurato correttamente" 1 12
         fi
     else
-        print_result "12.2 Profilo AppArmor di Apache non trovato" 1
+        print_result "12.2 Profilo AppArmor di Apache non trovato" 1 12
     fi
 }
 
@@ -2273,12 +2266,12 @@ check_apache_apparmor_enforce() {
         fi
 
         if aa-status | grep -q "^$apache_process (enforce)"; then
-            print_result "12.3 Profilo AppArmor di Apache in modalità enforce" 0
+            print_result "12.3 Profilo AppArmor di Apache in modalità enforce" 0 12
         else
-            print_result "12.3 Profilo AppArmor di Apache non in modalità enforce" 1
+            print_result "12.3 Profilo AppArmor di Apache non in modalità enforce" 1 12
         fi
     else
-        print_result "12.3 AppArmor non installato" 1
+        print_result "12.3 AppArmor non installato" 1 12
     fi
 }
 
