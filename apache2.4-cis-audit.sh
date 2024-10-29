@@ -2425,15 +2425,64 @@ EOF
                 </tr>
                 <tr>
                     <td>1. Planning and Installation</td>
-                    <td>$([ $section1_issues -eq 0 ] && echo "<span class='pass'>✓</span>" || echo "<span class='fail'>✗</span>")</td>
-                    <td>$([ $section1_issues -eq 0 ] && echo "Conforme" || echo "Richiede attenzione")</td>
+                    <td>$([ ${section_issues[1]} -eq 0 ] && echo "<span class='pass'>✓</span>" || echo "<span class='fail'>✗</span>")</td>
+                    <td>$([ ${section_issues[1]} -eq 0 ] && echo "Conforme" || echo "Richiede attenzione")</td>
                 </tr>
                 <tr>
                     <td>2. Apache Modules</td>
-                    <td>$([ $section2_issues -eq 0 ] && echo "<span class='pass'>✓</span>" || echo "<span class='fail'>✗</span>")</td>
-                    <td>$([ $section2_issues -eq 0 ] && echo "Conforme" || echo "Richiede attenzione")</td>
+                    <td>$([ ${section_issues[2]} -eq 0 ] && echo "<span class='pass'>✓</span>" || echo "<span class='fail'>✗</span>")</td>
+                    <td>$([ ${section_issues[2]} -eq 0 ] && echo "Conforme" || echo "Richiede attenzione")</td>
                 </tr>
-                <!-- Aggiungi altre sezioni qui -->
+                <tr>
+                    <td>3. Principles, Permissions, and Ownership</td>
+                    <td>$([ ${section_issues[3]} -eq 0 ] && echo "<span class='pass'>✓</span>" || echo "<span class='fail'>✗</span>")</td>
+                    <td>$([ ${section_issues[3]} -eq 0 ] && echo "Conforme" || echo "Richiede attenzione")</td>
+                </tr>
+                <tr>
+                    <td>4. Apache Access Control</td>
+                    <td>$([ ${section_issues[4]} -eq 0 ] && echo "<span class='pass'>✓</span>" || echo "<span class='fail'>✗</span>")</td>
+                    <td>$([ ${section_issues[4]} -eq 0 ] && echo "Conforme" || echo "Richiede attenzione")</td>
+                </tr>
+                <tr>
+                    <td>5. Minimize Features, Content and Options</td>
+                    <td>$([ ${section_issues[5]} -eq 0 ] && echo "<span class='pass'>✓</span>" || echo "<span class='fail'>✗</span>")</td>
+                    <td>$([ ${section_issues[5]} -eq 0 ] && echo "Conforme" || echo "Richiede attenzione")</td>
+                </tr>
+                <tr>
+                    <td>6. Operations - Logging, Monitoring and Maintenance</td>
+                    <td>$([ ${section_issues[6]} -eq 0 ] && echo "<span class='pass'>✓</span>" || echo "<span class='fail'>✗</span>")</td>
+                    <td>$([ ${section_issues[6]} -eq 0 ] && echo "Conforme" || echo "Richiede attenzione")</td>
+                </tr>
+                <tr>
+                    <td>7. SSL/TLS Configuration</td>
+                    <td>$([ ${section_issues[7]} -eq 0 ] && echo "<span class='pass'>✓</span>" || echo "<span class='fail'>✗</span>")</td>
+                    <td>$([ ${section_issues[7]} -eq 0 ] && echo "Conforme" || echo "Richiede attenzione")</td>
+                </tr>
+                <tr>
+                    <td>8. Information Leakage</td>
+                    <td>$([ ${section_issues[8]} -eq 0 ] && echo "<span class='pass'>✓</span>" || echo "<span class='fail'>✗</span>")</td>
+                    <td>$([ ${section_issues[8]} -eq 0 ] && echo "Conforme" || echo "Richiede attenzione")</td>
+                </tr>
+                <tr>
+                    <td>9. Denial of Service Mitigations</td>
+                    <td>$([ ${section_issues[9]} -eq 0 ] && echo "<span class='pass'>✓</span>" || echo "<span class='fail'>✗</span>")</td>
+                    <td>$([ ${section_issues[9]} -eq 0 ] && echo "Conforme" || echo "Richiede attenzione")</td>
+                </tr>
+                <tr>
+                    <td>10. Request Limits</td>
+                    <td>$([ ${section_issues[10]} -eq 0 ] && echo "<span class='pass'>✓</span>" || echo "<span class='fail'>✗</span>")</td>
+                    <td>$([ ${section_issues[10]} -eq 0 ] && echo "Conforme" || echo "Richiede attenzione")</td>
+                </tr>
+                <tr>
+                    <td>11. SELinux Configuration</td>
+                    <td>$([ ${section_issues[11]} -eq 0 ] && echo "<span class='pass'>✓</span>" || echo "<span class='fail'>✗</span>")</td>
+                    <td>$([ ${section_issues[11]} -eq 0 ] && echo "Conforme" || echo "Richiede attenzione")</td>
+                </tr>
+                <tr>
+                    <td>12. AppArmor Configuration</td>
+                    <td>$([ ${section_issues[12]} -eq 0 ] && echo "<span class='pass'>✓</span>" || echo "<span class='fail'>✗</span>")</td>
+                    <td>$([ ${section_issues[12]} -eq 0 ] && echo "Conforme" || echo "Richiede attenzione")</td>
+                </tr>
             </table>
         </div>
     </div>
