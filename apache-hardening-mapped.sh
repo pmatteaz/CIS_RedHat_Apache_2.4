@@ -351,9 +351,12 @@ secure_permissions() {
     # CIS 3.1-3.3: Configurazione utente Apache
     usermod -s /sbin/nologin "$APACHE_USER"  # CIS 3.2
     usermod -L "$APACHE_USER"                # CIS 3.3
+
+    # Dichiarazione esplicita dell'array associativo
+    declare -A APACHE_DIRS
     
     # CIS 3.4-3.6: Permessi directory principali
-    local APACHE_DIRS=(
+    APACHE_DIRS=(
         ["$APACHE_CONFIG_DIR"]="root:root:0755"
         ["$APACHE_LOG_DIR"]="root:root:0755"
         ["/var/www"]="root:root:0755"
