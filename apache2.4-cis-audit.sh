@@ -145,9 +145,9 @@ else
 fi
 }
 # Esegui tutte le verifiche della sezione 1
-check_pre_inst
-check_not_multi
-check_inst_bin
+check_pre_inst   # 1.1
+#check_not_multi  # 1.2
+check_inst_bin   # 1.3
 
 # 2 Minimize Apache Modules
 print_section "2 Minimize Apache Modules"
@@ -327,15 +327,15 @@ check_auth_basic_digest() {
 }
 
 # Esegui tutte le verifiche della sezione 2
-check_auth_modules
-check_log_config
-check_webdav_modules
-#check_status_module
-check_autoindex_module
-#check_proxy_modules
-check_userdir_module
-check_info_module
-check_auth_basic_digest
+check_auth_modules          # 2.1
+check_log_config            # 2.2
+check_webdav_modules        # 2.3 
+#check_status_module        # 2.4
+check_autoindex_module      # 2.5 
+#check_proxy_modules        # 2.6
+check_userdir_module        # 2.7
+check_info_module           # 2.8
+check_auth_basic_digest     # 2.9
 
 # 3 Principles, Permissions, and Ownership
 print_section "3 Principles, Permissions, and Ownership"
@@ -454,8 +454,7 @@ check_core_dump_dir() {
         local owner=$(stat -c %U "$core_dump_dir" 2>/dev/null)
 
         if [ "$owner" = "root" ] && [ "$perms" = "700" ]; then
-            print_result "3.7 Directory core dump configurata correttamente" 0
-            ((PASSED_CHECKS++))
+            print_result "3.7 Directory core dump configurata correttamente" 0 3
         else
             print_result "3.7 Directory core dump non sicura" 1 3
         fi
@@ -598,19 +597,19 @@ check_special_directories() {
 }
 
 # Esegui tutte le verifiche della sezione 3
-check_non_root_user
-check_invalid_shell
-check_locked_account
-check_root_ownership
-check_group_ownership
-check_other_write_access
-check_core_dump_dir
-check_lock_file
-check_pid_file
-check_scoreboard_file
-check_group_write_access
-check_docroot_group_write
-check_special_directories
+check_non_root_user        # 3.1
+check_invalid_shell        # 3.2
+check_locked_account       # 3.3
+check_root_ownership       # 3.4
+check_group_ownership      # 3.5
+check_other_write_access   # 3.6
+check_core_dump_dir        # 3.7
+check_lock_file            # 3.8
+check_pid_file             # 3.9
+check_scoreboard_file      # 3.10
+check_group_write_access   # 3.11
+check_docroot_group_write  # 3.12
+check_special_directories  # 3.13
 
 # 4 Apache Access Control
 print_section "4 Apache Access Control"
@@ -719,10 +718,10 @@ check_all_directories_override() {
 
 # Esegui tutte le verifiche della sezione 4
 
-check_os_root_access
-check_web_content_access
-check_root_override
-check_all_directories_override
+check_os_root_access             #4.1
+check_web_content_access         #4.2
+check_root_override              #4.3
+check_all_directories_override   #4.4
 
 
 
@@ -1193,24 +1192,24 @@ check_permissions_policy() {
 }
 
 # Esegui le verifiche della sezione 5
-check_root_options
-#check_webroot_options
-#check_other_directories_options
-#check_default_content
-#check_printenv_script
-#check_test_cgi
-check_http_methods
-check_trace_method
-check_old_protocols
-check_htaccess_access
-#check_git_access
-#check_svn_access
-check_inappropriate_extensions
-check_ip_requests
-check_listen_addresses
-#check_browser_framing
-#check_referrer_policy
-#check_permissions_policy
+check_root_options                    # 5.1
+#check_webroot_options                # 5.2
+#check_other_directories_options      # 5.3
+#check_default_content                # 5.4
+#check_printenv_script                # 5.5
+#check_test_cgi                       # 5.6
+check_http_methods                    # 5.7
+check_trace_method                    # 5.8
+check_old_protocols                   # 5.9
+check_htaccess_access                 # 5.10
+#check_git_access                     # 5.11
+#check_svn_access                     # 5.12
+check_inappropriate_extensions        # 5.13
+check_ip_requests                     # 5.14
+check_listen_addresses                # 5.15
+#check_browser_framing                # 5.16
+#check_referrer_policy                # 5.17
+#check_permissions_policy             # 5.18
 
 
 # 6 Operations - Logging, Monitoring and Maintenance
@@ -1384,13 +1383,13 @@ check_owasp_crs() {
 
 # Esegui le verifiche della sezione 6
 
-check_error_log_config
-check_syslog_facility
-check_access_log_config
-check_log_rotation_config
-check_apache_version
-#check_modsecurity
-#check_owasp_crs
+check_error_log_config        # 6.1
+check_syslog_facility         # 6.2
+check_access_log_config       # 6.3
+check_log_rotation_config     # 6.5
+#check_apache_version         # 6.6
+#check_modsecurity            # 6.7
+#check_owasp_crs              # 6.8
 
 # 7 SSL/TLS Configuration
 print_section "7 SSL/TLS Configuration"
@@ -1702,18 +1701,18 @@ check_forward_secrecy() {
 }
 
 # Esegui tutte le verifiche della sezione 7
-check_ssl_modules
-check_ssl_certificate
-check_private_key_protection
-check_tls_version
-check_weak_ciphers
-check_ssl_renegotiation
-#check_ssl_compression
-check_medium_ciphers
-#check_https_only
-check_ocsp_stapling
-check_hsts
-check_forward_secrecy
+check_ssl_modules                 # 7.1
+check_ssl_certificate             # 7.2
+check_private_key_protection      # 7.3
+check_tls_version                 # 7.4
+check_weak_ciphers                # 7.5
+check_ssl_renegotiation           # 7.6
+#check_ssl_compression            # 7.7
+check_medium_ciphers              # 7.8
+#check_https_only                 # 7.9
+check_ocsp_stapling               # 7.10
+check_hsts                        # 7.11
+check_forward_secrecy             # 7.12
 
 
 # 8 Information Leakage
@@ -1819,10 +1818,10 @@ check_etag_headers() {
 }
 
 # Esegui tutte le verifiche della sezione 8
-check_server_tokens
-check_server_signature
-check_default_content
-check_etag_headers
+check_server_tokens       # 8.1
+check_server_signature    # 8.2
+check_default_content     # 8.3
+check_etag_headers        # 8.4
 
 # 9 Denial of Service Mitigations
 print_section "9 Denial of Service Mitigations"
@@ -1994,12 +1993,12 @@ check_request_body_timeout() {
 
 # Esegui tutte le verifiche della sezione 9
 
-check_timeout
-check_keepalive
-check_max_keepalive_requests
-check_keepalive_timeout
-check_request_headers_timeout
-check_request_body_timeout
+check_timeout                     # 9.1
+check_keepalive                   # 9.2
+check_max_keepalive_requests      # 9.3
+check_keepalive_timeout           # 9.4
+check_request_headers_timeout     # 9.5
+check_request_body_timeout        # 9.6
 
 # 10 Request Limits
 print_section "10 Request Limits"
@@ -2117,10 +2116,10 @@ check_limit_request_body() {
 }
 
 # Esegui tutte le verifiche della sezione 10
-check_limit_request_line
-check_limit_request_fields
-check_limit_request_fieldsize
-check_limit_request_body
+check_limit_request_line         # 10.1
+check_limit_request_fields       # 10.2
+check_limit_request_fieldsize    # 10.3
+check_limit_request_body         # 10.4
 
 # 11 Enable SELinux to Restrict Apache Processes
 print_section "11 SELinux Configuration"
@@ -2199,10 +2198,10 @@ check_selinux_booleans() {
 
 # Esegui tutte le verifiche della sezione 11
 
-#check_selinux_enforcing
-#check_httpd_context
-#check_httpd_permissive
-#check_selinux_booleans
+#check_selinux_enforcing     # 11.1
+#check_httpd_context         # 11.1
+#check_httpd_permissive      # 11.1
+#check_selinux_booleans      # 11.1
 
 # 12 Enable AppArmor to Restrict Apache Processes
 print_section "12 AppArmor Configuration"
@@ -2277,9 +2276,9 @@ check_apache_apparmor_enforce() {
 
 # Esegui tutte le verifiche della sezione 12
 
-#check_apparmor_enabled
-#check_apache_apparmor_profile
-#check_apache_apparmor_enforce
+#check_apparmor_enabled           # 12.1
+#check_apache_apparmor_profile    # 12.2
+#check_apache_apparmor_enforce    # 12.3
 
 # riepilogo dei problemi per sezione
 print_section_summary() {
