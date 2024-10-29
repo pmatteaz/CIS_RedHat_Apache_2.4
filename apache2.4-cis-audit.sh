@@ -133,15 +133,19 @@ if [ "$DISTRO" = "debian" ]; then
     pkg_info=$(dpkg -s apache2 2>/dev/null)
     if [ $? -eq 0 ] && [[ "$pkg_info" =~ "ubuntu.com" ]] || [[ "$pkg_info" =~ "debian.org" ]]; then
         print_result "1.3 Apache installato da repository ufficiali" 0
+        ((PASSED_CHECKS++))
     else
         print_result "1.3 Apache non installato da repository ufficiali" 1
+        increment_section_issue 1 "1.3 - Apache non installato da repository ufficiali"
     fi
 else
     pkg_info=$(rpm -qi httpd 2>/dev/null)
     if [ $? -eq 0 ] && [[ "$pkg_info" =~ "redhat.com" ]]; then
         print_result "1.3 Apache installato da repository ufficiali" 0
+        ((PASSED_CHECKS++))
     else
         print_result "1.3 Apache non installato da repository ufficiali" 1
+        increment_section_issue 1 "1.3 - Apache non installato da repository ufficiali"
     fi
 fi
 }
@@ -172,8 +176,10 @@ check_auth_modules() {
 
     if [ $enabled_auth -le 1 ]; then
         print_result "2.1 Solo moduli di autenticazione necessari abilitati" 0
+        ((PASSED_CHECKS++))
     else
         print_result "2.1 Troppi moduli di autenticazione abilitati" 1
+        increment_section_issue 2 "2.1 - Troppi moduli di autenticazione abilitati"
     fi
 }
 
@@ -187,8 +193,10 @@ check_log_config() {
 
     if [ -n "$log_mod" ]; then
         print_result "2.2 Modulo log_config abilitato" 0
+        ((PASSED_CHECKS++))
     else
         print_result "2.2 Modulo log_config non abilitato" 1
+        increment_section_issue 2 "2.2 Modulo log_config non abilitato"
     fi
 }
 
@@ -2280,6 +2288,18 @@ check_apache_apparmor_enforce() {
 #check_apache_apparmor_profile
 #check_apache_apparmor_enforce
 
+# riepilogo dei problemi per sezione
+print_section_summary() {
+    echo -e "\nRiepilogo problemi per sezione:"
+    for section in "${!section_issues[@]}"; do
+        local issues=${section_issues[$section]}
+        if [ $issues -eq 0 ]; then
+            echo -e "${GREEN}Sezione $section: Nessun problema riscontrato${NC}"
+        else
+            echo -e "${RED}Sezione $section: $issues problemi riscontrati${NC}"
+        fi
+    done
+}
 
 # Funzione per generare il report finale
 
