@@ -461,7 +461,7 @@ secure_permissions() {
         if [ $? -ne 0 ]; then
             echo -e "${RED}Errore nell'impostazione dei permessi per $path${NC}"
             return 1
-        }
+        fi
         
         return 0
     }
