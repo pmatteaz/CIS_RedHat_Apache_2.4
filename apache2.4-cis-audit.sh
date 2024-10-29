@@ -117,11 +117,11 @@ check_pre_inst(){
 check_not_multi(){
 print_section "1.2 Verifica Server Multi-Use"
 other_services=$(systemctl list-units --type=service --state=active | grep -vE "apache2|httpd")
-if [ -z "$other_services" ]; then
-    print_result "1.2 Server dedicato solo ad Apache" 0
+if [ -n "$other_services" ]; then
+    print_result "1.2 Server dedicato solo ad Apache" 1
     increment_section_issue 1 "1.2 - Server utilizzato per altri servizi"
 else
-    print_result "1.2 Server utilizzato per altri servizi" 1
+    print_result "1.2 Server utilizzato per altri servizi" 0
     ((PASSED_CHECKS++))
 fi
 }
