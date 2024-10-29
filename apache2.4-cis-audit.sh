@@ -89,10 +89,30 @@ print_section "1 Planning and Installation"
 
 # 1.1 Ensure the Pre-Installation Planning Checklist Has Been Implemented
 check_pre_inst(){
-echo -e "${YELLOW}1.1 Pre-Installation Planning Checklist${NC}"
-echo "Nota: Verifica manuale richiesta per la checklist di pre-installazione"
+    # Identifica la distribuzione
+    if [ -f /etc/debian_version ]; then
+        DISTRO="debian"
+        APACHE_PATH="/etc/apache2"
+        APACHE_USER="www-data"
+        APACHE_BIN="apache2"
+        APACHE_CTL="apache2ctl"
+    elif [ -f /etc/redhat-release ]; then
+        DISTRO="redhat"
+        APACHE_PATH="/etc/httpd"
+        APACHE_USER="apache"
+        APACHE_BIN="httpd"
+        APACHE_CTL="httpd"
+    else
+        echo "Distribuzione non supportata"
+        exit 1
+    fi
+    echo -e "${YELLOW}1.1 Pre-Installation Planning Checklist${NC}"
+    if [ ! -f "$APACHE_PATH/installation_checklist.txt" ]; then
+        increment_section_issue 1 "1.1 - Checklist di pre-installazione non trovata"
+    else
+        ((PASSED_CHECKS++))
+    fi
 }
-
 # 1.2 Ensure the Server Is Not a Multi-Use System
 check_not_multi(){
 print_section "1.2 Verifica Server Multi-Use"
