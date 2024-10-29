@@ -2295,7 +2295,6 @@ print_section_summary() {
 }
 
 # Funzione per generare il report finale
-
 # Genera report in formato HTML dettagliato
 generate_html_report() {
     local report_file="apache_security_audit_$(date +%Y%m%d_%H%M%S).html"
@@ -2726,7 +2725,9 @@ generate_text_report() {
 }
 
 # Aggiungi alla fine dello script, dopo tutte le verifiche
+print_section "Genera Report HTML"
 generate_html_report
+print_section "Genera Report TEXT"
 generate_text_report
 
 echo -e "\nVerifica completata. Report generati in formato HTML e testo."
