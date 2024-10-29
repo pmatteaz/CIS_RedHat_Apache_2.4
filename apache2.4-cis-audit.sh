@@ -22,6 +22,14 @@ FAILED_CHECKS=0
 ISSUES_FOUND=""
 REMEDIATION_SUGGESTIONS=""
 
+# Funzione per incrementare il contatore dei problemi per una sezione
+increment_section_issue() {
+    local section=$1
+    local message=$2
+    ((section_issues[$section]++))
+    ISSUES_FOUND+="❌ [Sezione $section] $message\n"
+    FAILED_CHECKS=$((FAILED_CHECKS + 1))
+}
 
 # Funzione per stampare risultati
 print_result() {
@@ -91,8 +99,10 @@ print_section "1.2 Verifica Server Multi-Use"
 other_services=$(systemctl list-units --type=service --state=active | grep -vE "apache2|httpd")
 if [ -z "$other_services" ]; then
     print_result "1.2 Server dedicato solo ad Apache" 0
+    increment_section_issue 1 "1.2 - Server utilizzato per altri servizi"
 else
     print_result "1.2 Server utilizzato per altri servizi" 1
+    ((PASSED_CHECKS++))
 fi
 }
 
