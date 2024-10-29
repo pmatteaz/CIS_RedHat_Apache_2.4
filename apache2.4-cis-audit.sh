@@ -73,19 +73,24 @@ date
 print_section "1 Planning and Installation"
 
 # 1.1 Ensure the Pre-Installation Planning Checklist Has Been Implemented
+check_pre_inst(){
 echo -e "${YELLOW}1.1 Pre-Installation Planning Checklist${NC}"
 echo "Nota: Verifica manuale richiesta per la checklist di pre-installazione"
+}
 
 # 1.2 Ensure the Server Is Not a Multi-Use System
-#print_section "1.2 Verifica Server Multi-Use"
-#other_services=$(systemctl list-units --type=service --state=active | grep -vE "apache2|httpd")
-#if [ -z "$other_services" ]; then
-#    print_result "1.2 Server dedicato solo ad Apache" 0
-#else
-#    print_result "1.2 Server utilizzato per altri servizi" 1
-#fi
+check_not_multi(){
+print_section "1.2 Verifica Server Multi-Use"
+other_services=$(systemctl list-units --type=service --state=active | grep -vE "apache2|httpd")
+if [ -z "$other_services" ]; then
+    print_result "1.2 Server dedicato solo ad Apache" 0
+else
+    print_result "1.2 Server utilizzato per altri servizi" 1
+fi
+}
 
 # 1.3 Ensure Apache Is Installed From the Appropriate Binaries
+check_inst_bin(){
 print_section "1.3 Verifica Installazione Apache"
 if [ "$DISTRO" = "debian" ]; then
     pkg_info=$(dpkg -s apache2 2>/dev/null)
@@ -102,6 +107,11 @@ else
         print_result "1.3 Apache non installato da repository ufficiali" 1
     fi
 fi
+}
+# Esegui tutte le verifiche della sezione 1
+check_pre_inst
+check_not_multi
+check_inst_bin
 
 # 2 Minimize Apache Modules
 print_section "2 Minimize Apache Modules"
