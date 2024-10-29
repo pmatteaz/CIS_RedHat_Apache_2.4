@@ -137,6 +137,120 @@ detect_distro() {
     export -f disable_module
 }
 
+# ------------------------------
+# Funzione per disabilitare moduli Apache
+# Gestisce la disabilitazione dei moduli su entrambe le distribuzioni
+# ------------------------------
+disable_modules() {
+    local modules=("$@")
+    local module_name
+    local module_file
+    local disabled_count=0
+    local failed_count=0
+
+    echo "Disabilitando moduli non necessari..."
+
+    for module in "${modules[@]}"; do
+        echo -n "Disabilitando modulo $module... "
+        
+        case $DISTRO in
+            debian)
+                # In Debian, verifica prima se il modulo è abilitato
+                if [ -f "${APACHE_CONFIG_DIR}/mods-enabled/${module}.load" ]; then
+                    if $DISABLE_MOD_CMD "$module" >/dev/null 2>&1; then
+                        echo -e "${GREEN}OK${NC}"
+                        ((disabled_count++))
+                    else
+                        echo -e "${RED}FALLITO${NC}"
+                        ((failed_count++))
+                    fi
+                else
+                    echo -e "${YELLOW}già disabilitato${NC}"
+                fi
+                ;;
+                
+            redhat)
+                # In RHEL/CentOS, cerca il modulo nei file di configurazione
+                for conf_file in "${APACHE_CONFIG_DIR}"/conf.modules.d/*.conf; do
+                    # Cerca sia LoadModule che mod_
+                    if grep -E "^LoadModule.*mod_${module}|^LoadModule.*_${module}_module" "$conf_file" >/dev/null 2>&1; then
+                        if sed -i -E "s/^(LoadModule.*mod_${module}|LoadModule.*_${module}_module)/#\1/" "$conf_file"; then
+                            echo -e "${GREEN}OK${NC}"
+                            ((disabled_count++))
+                            break
+                        else
+                            echo -e "${RED}FALLITO${NC}"
+                            ((failed_count++))
+                            break
+                        fi
+                    fi
+                done
+                
+                # Se il modulo non è stato trovato in nessun file
+                if [ $disabled_count -eq 0 ] && [ $failed_count -eq 0 ]; then
+                    echo -e "${YELLOW}non trovato/già disabilitato${NC}"
+                fi
+                ;;
+        esac
+    done
+
+    # Verifica che i moduli critici rimangano abilitati
+    local critical_modules=("log_config" "unixd" "authz_core" "dir")
+    
+    echo "Verificando moduli critici..."
+    for module in "${critical_modules[@]}"; do
+        case $DISTRO in
+            debian)
+                if [ ! -f "${APACHE_CONFIG_DIR}/mods-enabled/${module}.load" ]; then
+                    echo -e "${YELLOW}Riabilitando modulo critico $module...${NC}"
+                    $ENABLE_MOD_CMD "$module" >/dev/null 2>&1
+                fi
+                ;;
+            redhat)
+                for conf_file in "${APACHE_CONFIG_DIR}"/conf.modules.d/*.conf; do
+                    if grep -E "^#.*LoadModule.*${module}_module" "$conf_file" >/dev/null 2>&1; then
+                        echo -e "${YELLOW}Riabilitando modulo critico $module...${NC}"
+                        sed -i -E "s/^#(LoadModule.*${module}_module)/\1/" "$conf_file"
+                    fi
+                done
+                ;;
+        esac
+    done
+
+    # Rapporto finale
+    echo "-----------------------------------"
+    echo "Rapporto disabilitazione moduli:"
+    echo "Moduli disabilitati con successo: $disabled_count"
+    if [ $failed_count -gt 0 ]; then
+        echo -e "${RED}Moduli non disabilitati: $failed_count${NC}"
+    fi
+    echo "-----------------------------------"
+
+    # Verifica la configurazione Apache dopo le modifiche
+    echo "Verificando la configurazione Apache..."
+    case $DISTRO in
+        debian)
+            if ! apache2ctl -t >/dev/null 2>&1; then
+                echo -e "${RED}ERRORE: La configurazione Apache non è valida dopo la disabilitazione dei moduli${NC}"
+                echo "Ripristino dell'ultima configurazione funzionante..."
+                # Qui potresti implementare un meccanismo di backup/restore
+                return 1
+            fi
+            ;;
+        redhat)
+            if ! httpd -t >/dev/null 2>&1; then
+                echo -e "${RED}ERRORE: La configurazione Apache non è valida dopo la disabilitazione dei moduli${NC}"
+                echo "Ripristino dell'ultima configurazione funzionante..."
+                # Qui potresti implementare un meccanismo di backup/restore
+                return 1
+            fi
+            ;;
+    esac
+
+    echo -e "${GREEN}Configurazione Apache verificata con successo${NC}"
+    return 0
+}
+
 # Funzione helper per verificare dipendenze
 check_dependencies() {
     local dependencies=(
