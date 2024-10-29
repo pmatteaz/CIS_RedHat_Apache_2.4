@@ -2485,6 +2485,108 @@ EOF
                 </tr>
             </table>
         </div>
+        <div class="section">
+            <h2>Dettagli per Sezione</h2>
+            
+            <div class="category-details">
+                <h3>1. Planning and Installation</h3>
+                <ul>
+                    <li>1.1 Pre-Installation Planning</li>
+                    <li>1.2 Multi-Use System Check</li>
+                    <li>1.3 Binary Installation Verification</li>
+                </ul>
+            </div>
+
+            <div class="category-details">
+                <h3>2. Apache Modules</h3>
+                <ul>
+                    <li>2.1 Authentication Modules</li>
+                    <li>2.2 Log Config Module</li>
+                    <li>2.3-2.9 Optional Modules Status</li>
+                </ul>
+            </div>
+
+            <div class="category-details">
+                <h3>3. Principles, Permissions, and Ownership</h3>
+                <ul>
+                    <li>3.1-3.3 User Configuration</li>
+                    <li>3.4-3.6 File Permissions</li>
+                    <li>3.7-3.13 Critical Files Security</li>
+                </ul>
+            </div>
+
+            <div class="category-details">
+                <h3>4. Apache Access Control</h3>
+                <ul>
+                    <li>4.1-4.2 Directory Access</li>
+                    <li>4.3-4.4 Override Settings</li>
+                </ul>
+            </div>
+
+            <div class="category-details">
+                <h3>5. Minimize Features</h3>
+                <ul>
+                    <li>5.1-5.3 Directory Options</li>
+                    <li>5.4-5.6 Default Content</li>
+                    <li>5.7-5.18 Security Headers and Restrictions</li>
+                </ul>
+            </div>
+
+            <div class="category-details">
+                <h3>6. Operations</h3>
+                <ul>
+                    <li>6.1-6.4 Logging Configuration</li>
+                    <li>6.5 Patch Management</li>
+                    <li>6.6-6.7 ModSecurity</li>
+                </ul>
+            </div>
+
+            <div class="category-details">
+                <h3>7. SSL/TLS Configuration</h3>
+                <ul>
+                    <li>7.1-7.3 SSL Setup</li>
+                    <li>7.4-7.8 Protocol and Cipher Configuration</li>
+                    <li>7.9-7.12 Security Enhancements</li>
+                </ul>
+            </div>
+
+            <div class="category-details">
+                <h3>8. Information Leakage</h3>
+                <ul>
+                    <li>8.1-8.2 Server Information</li>
+                    <li>8.3-8.4 Content Protection</li>
+                </ul>
+            </div>
+
+            <div class="category-details">
+                <h3>9. DoS Mitigations</h3>
+                <ul>
+                    <li>9.1-9.4 Timeout Settings</li>
+                    <li>9.5-9.6 Request Timeout Configuration</li>
+                </ul>
+            </div>
+
+            <div class="category-details">
+                <h3>10. Request Limits</h3>
+                <ul>
+                    <li>10.1-10.4 Request Restrictions</li>
+                </ul>
+            </div>
+
+            <div class="category-details">
+                <h3>11. SELinux Configuration</h3>
+                <ul>
+                    <li>11.1-11.4 SELinux Settings</li>
+                </ul>
+            </div>
+
+            <div class="category-details">
+                <h3>12. AppArmor Configuration</h3>
+                <ul>
+                    <li>12.1-12.3 AppArmor Settings</li>
+                </ul>
+            </div>
+        </div>
     </div>
 </body>
 </html>
