@@ -2335,6 +2335,49 @@ generate_html_report() {
             border-left: 5px solid #4a90e2;
             margin: 10px 0;
         }
+        .category-details {
+            background: #fff;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .category-details h3 {
+            color: #2c3e50;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+
+        .category-details ul {
+            list-style-type: none;
+            padding-left: 20px;
+        }
+
+        .category-details li {
+            margin: 5px 0;
+            color: #555;
+        }
+
+        .category-details li:before {
+            content: "•";
+            color: #4a90e2;
+            font-weight: bold;
+            display: inline-block;
+            width: 1em;
+            margin-left: -1em;
+        }
+
+        .pass {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .fail {
+            color: #dc3545;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
