@@ -678,7 +678,7 @@ configure_ssl() {
 
     cat > "$ssl_conf" << 'EOL'
 # CIS 7.1-7.12: SSL/TLS Configuration
-SSLProtocol all -SSLv3 -TLSv1 -TLSv1.1
+SSLProtocol all -SSLv3
 SSLCipherSuite EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH
 SSLHonorCipherOrder on
 SSLCompression off
