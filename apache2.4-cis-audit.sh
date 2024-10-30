@@ -636,9 +636,9 @@ check_web_content_access() {
     local issues_found=0
 
     if [ "$DISTRO" = "debian" ]; then
-        doc_root=$(grep -r "DocumentRoot" "$APACHE_PATH/sites-enabled/" | awk '{print $2}' | head -1)
+        doc_root=$(grep -r "DocumentRoot" "$APACHE_PATH/sites-enabled/" | awk '{print $2}' | head -2 | xargs)
     else
-        doc_root=$(grep -r "DocumentRoot" "$APACHE_PATH/conf/httpd.conf" | awk '{print $2}' | head -1)
+        doc_root=$(grep -r "DocumentRoot" "$APACHE_PATH/conf/httpd.conf" | awk '{print $2}' | head -2 | xargs)
     fi
 
     if [ -d "$doc_root" ]; then
