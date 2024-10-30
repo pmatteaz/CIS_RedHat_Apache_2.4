@@ -618,16 +618,19 @@ print_section "4 Apache Access Control"
 check_os_root_access() {
     local root_dir_conf=""
     if [ "$DISTRO" = "debian" ]; then
-        root_dir_conf=$(grep "<Directory /" "$APACHE_PATH/apache2/apache.conf" | grep -v "html")
+        root_dir_confs+=$(grep "<Directory /" "$APACHE_PATH/apache2/apache.conf" | grep -v "html")
+        root_dir_confs+=$(grep "<Directory /" "$APACHE_PATH/conf-available/security-access.conf" | grep -v "html")
     else
-        root_dir_conf=$(grep "<Directory /" "$APACHE_PATH/conf/httpd.conf" | grep -v "html")
+        root_dir_confs+=$(grep "<Directory /" "$APACHE_PATH/conf/httpd.conf" | grep -v "html")
+        root_dir_confs+=$(grep "<Directory /" "$APACHE_PATH/conf.d/security-access.conf" | grep -v "html")
     fi
-
-    if [[ "$root_dir_conf" =~ "Require all denied" ]] || [[ "$root_dir_conf" =~ "deny from all" ]]; then
-        print_result "4.1 Accesso alla directory root OS negato correttamente" 0 4
-    else
-        print_result "4.1 Accesso alla directory root OS non negato correttamente" 1 4
-    fi
+    for root_dir_conf in "${root_dir_confs[@]}"; do
+     if [[ "$root_dir_conf" =~ "Require all denied" ]] || [[ "$root_dir_conf" =~ "deny from all" ]]; then
+         print_result "4.1 Accesso alla directory root OS negato correttamente" 0 4
+     else
+         print_result "4.1 Accesso alla directory root OS non negato correttamente" 1 4
+     fi
+    done
 }
 
 # 4.2 Ensure Appropriate Access to Web Content Is Allowed
