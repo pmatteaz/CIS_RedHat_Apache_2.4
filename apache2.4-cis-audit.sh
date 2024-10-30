@@ -641,32 +641,34 @@ check_web_content_access() {
 
     # Trova tutti i file di configurazione
     if [ "$DISTRO" = "debian" ]; then
-        config_files=$(find $APACHE_PATH/apache2* -type f -name "*.conf")
+        config_files+=$(find $APACHE_PATH/apache2* -type f -name "*.conf")
     else
-        config_files=$(find $APACHE_PATH/conf* -type f -name "*.conf")
+        config_files+=$(find $APACHE_PATH/conf* -type f -name "*.conf")
     fi
 
     # Estrai DocumentRoot da tutti i file
-    doc_root=$(awk '
-        /^Include/ { 
-            gsub(/"/,"",$2)
-            system("awk \047/^[[:space:]]*DocumentRoot/{gsub(/\042/,\042\042,$2); print $2}\047 " $2)
-        }
-        /^[[:space:]]*DocumentRoot/ {
-            gsub(/"/,"",$2)
-            print $2
-        }' $config_files | head -1)
+    for conf in "${config_files[@]}"; do
+     doc_root=$(awk '
+         /^Include/ { 
+             gsub(/"/,"",$2)
+             system("awk \047/^[[:space:]]*DocumentRoot/{gsub(/\042/,\042\042,$2); print $2}\047 " $2)
+         }
+         /^[[:space:]]*DocumentRoot/ {
+             gsub(/"/,"",$2)
+             print $2
+         }' $conf | head -1)
 
-    if [ -d "$doc_root" ]; then
-        # Verifica permessi directory
-        local dir_perms=$(stat -c %a "$doc_root")
-        if [ "$dir_perms" != "755" ]; then
-            issues_found=1
-            echo "DocumentRoot ha permessi non corretti: $dir_perms"
-        fi
-
+     if [ -d "$doc_root" ]; then
+         # Verifica permessi directory
+         local dir_perms=$(stat -c %a "$doc_root")
+         if [ "$dir_perms" != "755" ]; then
+             issues_found=1
+             echo "DocumentRoot ha permessi non corretti: $dir_perms"
+         fi
+      
         # Cerca la configurazione Directory in tutti i file
         local dir_conf=""
+        
         if [ "$DISTRO" = "debian" ]; then
             for conf in $config_files; do
                 dir_conf+=$(awk '/^[[:space:]]*<Directory/{flag=1;print;next} /<\/Directory>/{flag=0;print} flag==1{print}' "$conf")
@@ -685,7 +687,7 @@ check_web_content_access() {
         issues_found=1
         echo "DocumentRoot non trovata: $doc_root"
     fi
-
+   done
     if [ $issues_found -eq 0 ]; then
         print_result "4.2 Accesso al contenuto web configurato correttamente" 0 4
     else
