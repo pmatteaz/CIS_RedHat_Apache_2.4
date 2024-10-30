@@ -637,12 +637,25 @@ check_os_root_access() {
 check_web_content_access() {
     local doc_root=""
     local issues_found=0
+    local config_files=""
 
+    # Trova tutti i file di configurazione
     if [ "$DISTRO" = "debian" ]; then
-        doc_root=$(awk '/^[[:space:]]*DocumentRoot/{print $2}' "$APACHE_PATH/apache2/apache2.conf" | tr -d '"')
+        config_files=$(find "$APACHE_PATH/apache2" -type f -name "*.conf")
     else
-        doc_root=$( awk '/^[[:space:]]*DocumentRoot/{print $2}' "$APACHE_PATH/conf/httpd.conf" | tr -d '"')
+        config_files=$(find "$APACHE_PATH/conf" -type f -name "*.conf")
     fi
+
+    # Estrai DocumentRoot da tutti i file
+    doc_root=$(awk '
+        /^Include/ { 
+            gsub(/"/,"",$2)
+            system("awk \047/^[[:space:]]*DocumentRoot/{gsub(/\042/,\042\042,$2); print $2}\047 " $2)
+        }
+        /^[[:space:]]*DocumentRoot/ {
+            gsub(/"/,"",$2)
+            print $2
+        }' $config_files | head -1)
 
     if [ -d "$doc_root" ]; then
         # Verifica permessi directory
@@ -652,12 +665,16 @@ check_web_content_access() {
             echo "DocumentRoot ha permessi non corretti: $dir_perms"
         fi
 
-        # Verifica configurazione Directory
+        # Cerca la configurazione Directory in tutti i file
         local dir_conf=""
         if [ "$DISTRO" = "debian" ]; then
-            dir_conf=$(grep -r "<Directory $doc_root>" "$APACHE_PATH" -A5)
+            for conf in $config_files; do
+                dir_conf+=$(awk '/^[[:space:]]*<Directory/{flag=1;print;next} /<\/Directory>/{flag=0;print} flag==1{print}' "$conf")
+            done
         else
-            dir_conf=$(grep -r "<Directory $doc_root>" "$APACHE_PATH" -A5)
+            for conf in $config_files; do
+                dir_conf+=$(awk '/^[[:space:]]*<Directory/{flag=1;print;next} /<\/Directory>/{flag=0;print} flag==1{print}' "$conf")
+            done
         fi
 
         if ! [[ "$dir_conf" =~ "Require all granted" ]] && ! [[ "$dir_conf" =~ "allow from all" ]]; then
