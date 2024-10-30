@@ -618,9 +618,9 @@ print_section "4 Apache Access Control"
 check_os_root_access() {
     local root_dir_conf=""
     if [ "$DISTRO" = "debian" ]; then
-        root_dir_conf=$(grep -r "<Directory /" "$APACHE_PATH" | grep -v "html")
+        root_dir_conf=$(grep "<Directory /" "$APACHE_PATH/apache2/apache.conf" | grep -v "html")
     else
-        root_dir_conf=$(grep -r "<Directory /" "$APACHE_PATH" | grep -v "html")
+        root_dir_conf=$(grep "<Directory /" "$APACHE_PATH/conf/httpd.conf" | grep -v "html")
     fi
 
     if [[ "$root_dir_conf" =~ "Require all denied" ]] || [[ "$root_dir_conf" =~ "deny from all" ]]; then
@@ -636,9 +636,9 @@ check_web_content_access() {
     local issues_found=0
 
     if [ "$DISTRO" = "debian" ]; then
-        doc_root=$(grep -r "DocumentRoot" "$APACHE_PATH/sites-enabled/" | awk '{print $2}' | head -2 | xargs)
+        doc_root=$(grep -r "DocumentRoot" "$APACHE_PATH/sites-enabled/" | awk '{print $2}' | head -2 |tail -1 | tr -d '"')
     else
-        doc_root=$(grep -r "DocumentRoot" "$APACHE_PATH/conf/httpd.conf" | awk '{print $2}' | head -2 | xargs)
+        doc_root=$(grep -r "DocumentRoot" "$APACHE_PATH/conf/httpd.conf" | awk '{print $2}' | head -2 |tail -1 | tr -d '"')
     fi
 
     if [ -d "$doc_root" ]; then
