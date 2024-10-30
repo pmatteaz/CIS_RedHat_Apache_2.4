@@ -641,9 +641,9 @@ check_web_content_access() {
 
     # Trova tutti i file di configurazione
     if [ "$DISTRO" = "debian" ]; then
-        config_files=$(find "$APACHE_PATH/apache2" -type f -name "*.conf")
+        config_files=$(find $APACHE_PATH/apache2* -type f -name "*.conf")
     else
-        config_files=$(find "$APACHE_PATH/conf" -type f -name "*.conf")
+        config_files=$(find $APACHE_PATH/conf* -type f -name "*.conf")
     fi
 
     # Estrai DocumentRoot da tutti i file
