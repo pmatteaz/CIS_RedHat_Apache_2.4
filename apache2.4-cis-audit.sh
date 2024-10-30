@@ -618,11 +618,11 @@ print_section "4 Apache Access Control"
 check_os_root_access() {
     local root_dir_conf=""
     if [ "$DISTRO" = "debian" ]; then
-        root_dir_confs+=$(grep "<Directory /" "$APACHE_PATH/apache2/apache.conf" | grep -v "html" | awk '/<Directory.*>/{p=1} /<\/Directory>/{p=0} p' )
-        root_dir_confs+=$(grep "<Directory /" "$APACHE_PATH/conf-available/security-access.conf" | grep -v "html" | awk '/<Directory.*>/{p=1} /<\/Directory>/{p=0} p')
+        root_dir_confs+=$(grep "<Directory /" "$APACHE_PATH/apache2/apache.conf" | awk '/<Directory.*>/{p=1} /<\/Directory>/{p=0} p' )
+        root_dir_confs+=$(grep "<Directory /" "$APACHE_PATH/conf-available/security-access.conf" | awk '/<Directory.*>/{p=1} /<\/Directory>/{p=0} p' )
     else
-        root_dir_confs+=$(grep "<Directory /" "$APACHE_PATH/conf/httpd.conf" | grep -v "html" |awk '/<Directory.*>/{p=1} /<\/Directory>/{p=0} p')
-        root_dir_confs+=$(grep "<Directory /" "$APACHE_PATH/conf.d/security-access.conf" | grep -v "html" |awk '/<Directory.*>/{p=1} /<\/Directory>/{p=0} p')
+        root_dir_confs+=$(grep "<Directory /" "$APACHE_PATH/conf/httpd.conf" |awk '/<Directory.*>/{p=1} /<\/Directory>/{p=0} p')
+        root_dir_confs+=$(grep "<Directory /" "$APACHE_PATH/conf.d/security-access.conf" |awk '/<Directory.*>/{p=1} /<\/Directory>/{p=0} p')
     fi
     for root_dir_conf in "${root_dir_confs[@]}"; do
      if [[ "$root_dir_conf" =~ "Require all denied" ]] || [[ "$root_dir_conf" =~ "deny from all" ]]; then
