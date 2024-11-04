@@ -538,6 +538,7 @@ secure_permissions() {
 # 4.3-4.4 - Ensure Override Is Disabled
 # ------------------------------
 configure_access_control() {
+    echo "CIS 4: Apache Access Control "
     local access_conf
     case $DISTRO in
         debian)
@@ -575,6 +576,7 @@ EOL
 # 5.1-5.18 - Options and Content Restrictions
 # ------------------------------
 configure_security_options() {
+    echo "CIS 5: Minimize Features, Content and Options"
     local security_conf
     case $DISTRO in
         debian)
@@ -643,13 +645,16 @@ sed -i 's/Listen 80/Listen 192.168.1.1:80/' $apache_conf
 # 6.1-6.7 - Logging Configuration
 # ------------------------------
 configure_logging() {
+    echo " CIS 6: Logging, Monitoring and Maintenance "
     local logging_conf
     case $DISTRO in
         debian)
             logging_conf="$APACHE_CONFIG_DIR/conf-available/logging.conf"
+            apache_conf="$APACHE_CONFIG_DIR/conf/apache2.conf"
             ;;
         redhat)
             logging_conf="$APACHE_CONFIG_DIR/conf.d/logging.conf"
+            apache_conf="$APACHE_CONFIG_DIR/conf/httpd.conf"
             ;;
     esac
 
@@ -702,6 +707,7 @@ EOL
 # 7.1-7.12 - SSL/TLS Settings
 # ------------------------------
 configure_ssl() {
+    echo " CIS 7: SSL/TLS Configuration "
     local ssl_conf
     case $DISTRO in
         debian)
@@ -752,6 +758,7 @@ EOL
 # 8.1-8.4 - Prevent Information Leakage
 # ------------------------------
 prevent_info_leakage() {
+    echo "CIS 8: Information Leakage"
     local info_conf
     case $DISTRO in
         debian)
@@ -798,6 +805,7 @@ EOL
 # 10.1-10.4 - Request Limits
 # ------------------------------
 configure_request_limits() {
+    echo "CIS 9 & 10: DoS Mitigations e Request Limits"
     local limits_conf
     case $DISTRO in
         debian)
@@ -810,18 +818,28 @@ configure_request_limits() {
 
     cat > "$limits_conf" << 'EOL'
 # CIS 9.1-9.6: Timeout Settings
-Timeout 10                                                                              # CIS 9.1
-KeepAlive On                                                                    # CIS 9.2
-MaxKeepAliveRequests 100                                                # CIS 9.3
-KeepAliveTimeout 15                                                             # CIS 9.4
-RequestReadTimeout header=20-40,MinRate=500             # CIS 9.5
-RequestReadTimeout body=20,MinRate=500                  # CIS 9.6
+# CIS 9.1
+Timeout 10
+# CIS 9.2
+KeepAlive On
+# CIS 9.3
+MaxKeepAliveRequests 100
+# CIS 9.4
+KeepAliveTimeout 15
+# CIS 9.5
+RequestReadTimeout header=20-40,MinRate=500
+# CIS 9.6
+RequestReadTimeout body=20,MinRate=500
 
 # CIS 10.1-10.4: Request Limits
-LimitRequestLine 512                    # CIS 10.1
-LimitRequestFields 100                  # CIS 10.2
-LimitRequestFieldSize 1024              # CIS 10.3
-LimitRequestBody 102400                 # CIS 10.4
+# CIS 10.1
+LimitRequestLine 512
+# CIS 10.2
+LimitRequestFields 100
+# CIS 10.3
+LimitRequestFieldSize 1024
+# CIS 10.4
+LimitRequestBody 102400
 EOL
 }
 
@@ -837,14 +855,14 @@ main() {
     # Esegue tutte le funzioni in ordine secondo CIS
     #check_installation
     #manage_modules
-    secure_permissions
+    #secure_permissions
     #secure_critical_files
     #configure_access_control
     #configure_security_options
     #configure_logging
     #configure_ssl
     #prevent_info_leakage
-    #configure_request_limits
+    configure_request_limits
 
 # ------------------------------
 # Funzione per riavviare Apache in modo sicuro
