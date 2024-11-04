@@ -843,27 +843,6 @@ LimitRequestBody 102400
 EOL
 }
 
-# Funzione principale che esegue tutti i controlli
-main() {
-    if [ "$EUID" -ne 0 ]; then
-        echo -e "${RED}Questo script deve essere eseguito come root${NC}"
-        exit 1
-    fi
-    # Identifica la distribuzione
-        detect_distro
-
-    # Esegue tutte le funzioni in ordine secondo CIS
-    #check_installation
-    #manage_modules
-    #secure_permissions
-    #secure_critical_files
-    #configure_access_control
-    #configure_security_options
-    #configure_logging
-    #configure_ssl
-    #prevent_info_leakage
-    configure_request_limits
-
 # ------------------------------
 # Funzione per riavviare Apache in modo sicuro
 # Include verifiche pre e post riavvio
@@ -1037,7 +1016,27 @@ restart_apache() {
     fi
 }
 
-    #restart_apache
+# Funzione principale che esegue tutti i controlli
+main() {
+    if [ "$EUID" -ne 0 ]; then
+        echo -e "${RED}Questo script deve essere eseguito come root${NC}"
+        exit 1
+    fi
+    # Identifica la distribuzione
+        detect_distro
+
+    # Esegue tutte le funzioni in ordine secondo CIS
+    check_installation
+    manage_modules
+    secure_permissions
+    secure_critical_files
+    configure_access_control
+    configure_security_options
+    configure_logging
+    configure_ssl
+    prevent_info_leakage
+    configure_request_limits
+ 
 
     echo -e "${GREEN}Implementazione controlli CIS completata${NC}"
     echo -e "${YELLOW}Nota: Alcuni controlli CIS potrebbero richiedere configurazione manuale aggiuntiva${NC}"
@@ -1045,3 +1044,4 @@ restart_apache() {
 
 # Esegue lo script
 main
+restart_apache
