@@ -18,7 +18,7 @@ detect_distro() {
         APACHE_MODULES_DIR="/etc/apache2/mods-available"
         APACHE_CONF_ENABLED="/etc/apache2/conf-enabled"
         APACHE_SITES_ENABLED="/etc/apache2/sites-enabled"
-        
+
         # Comandi specifici Debian
         ENABLE_SITE_CMD="a2ensite"
         DISABLE_SITE_CMD="a2dissite"
@@ -26,14 +26,14 @@ detect_distro() {
         DISABLE_CONF_CMD="a2disconf"
         ENABLE_MOD_CMD="a2enmod"
         DISABLE_MOD_CMD="a2dismod"
-        
+
         # Package manager specifico
         PKG_MANAGER="apt-get"
         PKG_INSTALL="apt-get install -y"
         PKG_REMOVE="apt-get remove -y"
-        
+
         echo -e "${GREEN}Rilevato sistema Debian/Ubuntu${NC}"
-        
+
     elif [ -f /etc/redhat-release ]; then
         DISTRO="redhat"
         APACHE_SERVICE="httpd"
@@ -44,7 +44,7 @@ detect_distro() {
         APACHE_LOG_DIR="/var/log/httpd"
         APACHE_MODULES_DIR="/etc/httpd/modules"
         APACHE_CONF_DIR="/etc/httpd/conf.d"
-        
+
         # In RHEL/CentOS non ci sono comandi equivalenti a a2ensite/a2dissite
         # I moduli sono gestiti direttamente nei file di configurazione
         ENABLE_MODULE() {
@@ -52,20 +52,20 @@ detect_distro() {
             sed -i "s/#LoadModule ${module}_module/LoadModule ${module}_module/" \
                 "${APACHE_CONFIG_DIR}/conf.modules.d/"*
         }
-        
+
         DISABLE_MODULE() {
             local module=$1
             sed -i "s/^LoadModule ${module}_module/#LoadModule ${module}_module/" \
                 "${APACHE_CONFIG_DIR}/conf.modules.d/"*
         }
-        
+
         # Package manager specifico
         PKG_MANAGER="yum"
         PKG_INSTALL="yum install -y"
         PKG_REMOVE="yum remove -y"
-        
+
         echo -e "${GREEN}Rilevato sistema Red Hat/CentOS${NC}"
-        
+
     else
         echo -e "${RED}Distribuzione non supportata${NC}"
         exit 1
@@ -80,7 +80,7 @@ detect_distro() {
             APACHE_VERSION=$(httpd -v | grep "Server version" | cut -d/ -f2 | awk '{print $1}')
             ;;
     esac
-    
+
     echo -e "${GREEN}Versione Apache rilevata: ${APACHE_VERSION}${NC}"
 
     # Verifica SELinux/AppArmor
@@ -152,7 +152,7 @@ disable_modules() {
 
     for module in "${modules[@]}"; do
         echo -n "Disabilitando modulo $module... "
-        
+
         case $DISTRO in
             debian)
                 # In Debian, verifica prima se il modulo è abilitato
@@ -168,7 +168,7 @@ disable_modules() {
                     echo -e "${YELLOW}già disabilitato${NC}"
                 fi
                 ;;
-                
+
             redhat)
                 # In RHEL/CentOS, cerca il modulo nei file di configurazione
                 for conf_file in "${APACHE_CONFIG_DIR}"/conf.modules.d/*.conf; do
@@ -185,7 +185,7 @@ disable_modules() {
                         fi
                     fi
                 done
-                
+
                 # Se il modulo non è stato trovato in nessun file
                 if [ $disabled_count -eq 0 ] && [ $failed_count -eq 0 ]; then
                     echo -e "${YELLOW}non trovato/già disabilitato${NC}"
@@ -196,7 +196,7 @@ disable_modules() {
 
     # Verifica che i moduli critici rimangano abilitati
     local critical_modules=("log_config" "unixd" "authz_core" "dir")
-    
+
     echo "Verificando moduli critici..."
     for module in "${critical_modules[@]}"; do
         case $DISTRO in
@@ -274,15 +274,15 @@ check_dependencies() {
 # 1.3 - Ensure Apache Is Installed From the Appropriate Binaries
 # ------------------------------
 check_installation() {
-    
-    
-    # CIS 1.2: Verifica che il server non sia multi-uso
-    local critical_services=("mysql" "postgresql" "named" "dhcpd" "dovecot" "samba")
-    for service in "${critical_services[@]}"; do
-        if systemctl is-active --quiet "$service"; then
-            echo -e "${YELLOW}WARNING: $service è in esecuzione. CIS 1.2 raccomanda un server dedicato${NC}"
-        fi
-    done
+
+   echo "Implementando CIS 1.3"
+   ## CIS 1.2: Verifica che il server non sia multi-uso
+   #local critical_services=("mysql" "postgresql" "named" "dhcpd" "dovecot" "samba")
+   #for service in "${critical_services[@]}"; do
+   #    if systemctl is-active --quiet "$service"; then
+   #        echo -e "${YELLOW}WARNING: $service è in esecuzione. CIS 1.2 raccomanda un server dedicato${NC}"
+   #    fi
+   #done
 
     # CIS 1.3: Verifica installazione Apache
     case $DISTRO in
@@ -309,7 +309,7 @@ check_installation() {
 # ------------------------------
 manage_modules() {
     echo "Implementando CIS 2 - Gestione Moduli..."
-    
+
     # CIS 2.2: Assicurarsi che log_config sia abilitato
     case $DISTRO in
         debian)
@@ -325,10 +325,7 @@ manage_modules() {
     local MODULES_TO_DISABLE=(
         "dav"           # CIS 2.3 - WebDAV
         "dav_fs"        # CIS 2.3 - WebDAV
-        "status"        # CIS 2.4 - Status
         "autoindex"     # CIS 2.5 - Autoindex
-        "proxy"         # CIS 2.6 - Proxy
-        "proxy_http"    # CIS 2.6 - Proxy
         "userdir"       # CIS 2.7 - UserDir
         "info"          # CIS 2.8 - Info
         "auth_basic"    # CIS 2.9 - Basic Auth
@@ -347,14 +344,16 @@ manage_modules() {
 # ------------------------------
 secure_permissions() {
     echo "Implementando CIS 3 - Permessi e Proprietà..."
-    
+
     # CIS 3.1-3.3: Configurazione utente Apache
-    usermod -s /sbin/nologin "$APACHE_USER"  # CIS 3.2
-    usermod -L "$APACHE_USER"                # CIS 3.3
+    # CIS 3.2
+    usermod -s /sbin/nologin "$APACHE_USER" 2>/dev/null
+    # CIS 3.3
+    usermod -L "$APACHE_USER" 2>/dev/null
 
     # Dichiarazione esplicita dell'array associativo
     declare -A APACHE_DIRS
-    
+
     # CIS 3.4-3.6: Permessi directory principali
     APACHE_DIRS=(
         ["$APACHE_CONFIG_DIR"]="root:root:0755"
@@ -380,44 +379,44 @@ secure_permissions() {
     # ------------------------------
     secure_critical_files() {
     echo "Protezione file critici di Apache..."
-    
+
     # Definizione delle directory e file critici con i loro permessi desiderati
     declare -A CRITICAL_PATHS
-    
+
     case $DISTRO in
         debian)
             CRITICAL_PATHS=(
                 # CIS 3.7 - Core Dump Directory
                 ["/var/crash"]="root:root:0700"
                 ["/var/core"]="root:root:0700"
-                
+
                 # CIS 3.8 - Lock File
                 ["/var/lock/apache2"]="root:root:0700"
                 ["/var/run/apache2/apache2.lock"]="root:root:0700"
-                
+
                 # CIS 3.9 - PID File
                 ["/var/run/apache2"]="root:root:0755"
                 ["/var/run/apache2/apache2.pid"]="root:root:0644"
-                
+
                 # CIS 3.10 - ScoreBoard File
                 ["/var/run/apache2/scoreboard"]="root:root:0600"
             )
             ;;
-            
+
         redhat)
             CRITICAL_PATHS=(
                 # CIS 3.7 - Core Dump Directory
                 ["/var/crash"]="root:root:0700"
                 ["/var/core"]="root:root:0700"
-                
+
                 # CIS 3.8 - Lock File
                 ["/var/lock/subsys/httpd"]="root:root:0700"
                 ["/var/run/httpd/httpd.lock"]="root:root:0700"
-                
+
                 # CIS 3.9 - PID File
                 ["/var/run/httpd"]="root:root:0755"
                 ["/var/run/httpd/httpd.pid"]="root:root:0644"
-                
+
                 # CIS 3.10 - ScoreBoard File
                 ["/var/run/httpd/scoreboard"]="root:root:0600"
             )
@@ -428,7 +427,7 @@ secure_permissions() {
     create_directory() {
         local dir="$1"
         local perms="$2"
-        
+
         if [ ! -d "$dir" ]; then
             echo "Creando directory $dir..."
             mkdir -p "$dir"
@@ -445,46 +444,46 @@ secure_permissions() {
         local path="$1"
         local owner_group="$2"
         local mode="$3"
-        
+
         # Estrai owner e group
         IFS=: read -r owner group <<< "$owner_group"
-        
+
         # Imposta owner e group
         chown "$owner:$group" "$path"
         if [ $? -ne 0 ]; then
             echo -e "${RED}Errore nell'impostazione owner/group per $path${NC}"
             return 1
         fi
-        
+
         # Imposta permessi
         chmod "$mode" "$path"
         if [ $? -ne 0 ]; then
             echo -e "${RED}Errore nell'impostazione dei permessi per $path${NC}"
             return 1
         fi
-        
+
         return 0
     }
 
     # Processa ogni path critico
     for path in "${!CRITICAL_PATHS[@]}"; do
         echo "Processando $path..."
-        
+
         # Estrai i permessi desiderati
         IFS=: read -r owner group mode <<< "${CRITICAL_PATHS[$path]}"
-        
+
         # Se è una directory, creala se non esiste
         if [[ "$path" == */ ]] || [ ! -f "$path" ]; then
             if ! create_directory "$path" "$mode"; then
                 continue
             fi
         fi
-        
+
         # Imposta i permessi
         if [ -e "$path" ]; then
             # Rimuovi permessi globali pericolosi
             chmod o-rwx "$path"
-            
+
             # Imposta i permessi corretti
             if set_permissions "$path" "$owner:$group" "$mode"; then
                 echo -e "${GREEN}Permessi impostati correttamente per $path${NC}"
@@ -525,10 +524,12 @@ secure_permissions() {
     fi
 
     echo "Protezione file critici completata"
-}	
-	
-    secure_permissions
-    secure_critical_files
+}
+
+#
+#  3.10 3.11 3.12
+#
+
 
 # ------------------------------
 # CIS 4: Apache Access Control
@@ -578,9 +579,11 @@ configure_security_options() {
     case $DISTRO in
         debian)
             security_conf="$APACHE_CONFIG_DIR/conf-available/security-options.conf"
+                        apache_conf="/etc/apache2/apache2.conf"
             ;;
         redhat)
             security_conf="$APACHE_CONFIG_DIR/conf.d/security-options.conf"
+                        apache_conf="/etc/httpd/conf/httpd.conf"
             ;;
     esac
 
@@ -591,9 +594,9 @@ configure_security_options() {
 </Directory>
 
 # CIS 5.2: Restrict Web Root Options
-<Directory /var/www/html>
-    Options -Indexes -Includes -ExecCGI
-</Directory>
+#<Directory /var/www/html>
+#    Options -Indexes -Includes -ExecCGI
+#</Directory>
 
 # CIS 5.7-5.8: HTTP Method restrictions
 <Location />
@@ -604,30 +607,36 @@ configure_security_options() {
 TraceEnable Off
 
 # CIS 5.9: Disable old HTTP protocols
-Protocol strict
+RewriteEngine On
+RewriteCond %{THE_REQUEST} !HTTP/1\.1$
+RewriteRule  .* - [F]
 
-# CIS 5.10-5.12: Protect sensitive files
+# CIS 5.10: Ensure Access to .ht* File Is Restricted
 <FilesMatch "^\.ht">
     Require all denied
 </FilesMatch>
-<FilesMatch "^\.git">
-    Require all denied
-</FilesMatch>
-<FilesMatch "^\.svn">
-    Require all denied
-</FilesMatch>
+
 
 # CIS 5.13: Restrict file extensions
-<FilesMatch "\.(?i:ph(p[3457]?|t|tml)|aspx?|jsp|cfm|cgi)$">
+#<FilesMatch "\.(?i:ph(p[3457]?|t|tml)|aspx?|jsp|cfm|cgi)$">
+<FilesMatch "^.*\.(bak|config|sql|fla|psd|ini|log|sh|inc|swp|dist|old|original|template|php~|php#)$">
     Require all denied
 </FilesMatch>
 
-# CIS 5.16-5.18: Security Headers
-Header always append X-Frame-Options SAMEORIGIN
-Header always set Referrer-Policy "strict-origin-when-cross-origin"
-Header always set Permissions-Policy "geolocation=(), midi=(), sync-xhr=(), microphone=(), camera=(), magnetometer=(), gyroscope=(), fullscreen=(self), payment=()"
+# CIS 5.14:
+RewriteEngine On
+RewriteCond %{HTTP_HOST} !^www\.example\.com [NC]
+RewriteCond %{REQUEST_URI} !^/error [NC]
+RewriteRule ^.(.*) - [L,F]
+
 EOL
+
+# CIS 5.15: Security Headers
+sed -i 's/Listen 80/Listen 192.168.1.1:80/' $apache_conf
 }
+
+
+
 
 # ------------------------------
 # CIS 6: Logging, Monitoring and Maintenance
@@ -647,18 +656,45 @@ configure_logging() {
     # CIS 6.1-6.4: Configurazione logging
     cat > "$logging_conf" << EOL
 # CIS 6.1: Error Log configuration
-LogLevel warn
+LogLevel notice core:info
 ErrorLog ${APACHE_LOG_DIR}/error.log
 
 # CIS 6.3: Access Log configuration
 LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" combined
 CustomLog ${APACHE_LOG_DIR}/access.log combined
 
-# CIS 6.4: Log Rotation
-<IfModule mod_logio.c>
-    LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\" %I %O" combinedio
-</IfModule>
 EOL
+
+# CIS 6.2: Ensure Syslog Facility Is Configured for Error Logging
+sed -i 's/ErrorLog .*/ErrorLog "syslog:local1"/' $apache_conf
+
+# CIS 6.4: Ensure Log Storage and Rotation Is Configured Correctly
+cat > /etc/logrotate.d/httpd << 'EOL'
+/var/log/httpd/*log {
+    daily
+    rotate 30
+    compress
+    delaycompress
+    notifempty
+    missingok
+    sharedscripts
+    postrotate
+        /bin/systemctl reload httpd.service > /dev/null 2>/dev/null || true
+    endscript
+}
+EOL
+
+# CIS 6.5: Patch are Applied
+    case $DISTRO in
+        debian)
+            apt update
+                        apt install --only-upgrade apache2
+            ;;
+        redhat)
+            yum update httpd
+            ;;
+    esac
+
 }
 
 # ------------------------------
@@ -670,22 +706,44 @@ configure_ssl() {
     case $DISTRO in
         debian)
             ssl_conf="$APACHE_CONFIG_DIR/conf-available/ssl-hardening.conf"
+                        apache_conf="/etc/apache2/apache2.conf"
             ;;
         redhat)
             ssl_conf="$APACHE_CONFIG_DIR/conf.d/ssl-hardening.conf"
+                        apache_conf="/etc/httpd/conf/httpd.conf"
             ;;
     esac
+# CIS 7.9: Ensure All Web Content Is Accessed via HTTPS
+cat >> $apache_conf << 'EOL'
+RewriteEngine On
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI}[R=301,L]
+EOL
 
     cat > "$ssl_conf" << 'EOL'
-# CIS 7.1-7.12: SSL/TLS Configuration
-SSLProtocol all -SSLv3 +TLSv1.2 +TLSv1.3
-SSLCipherSuite EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH
+##
+# CIS 7.4
+SSLProtocol all +TLSv1.2 +TLSv1.3
+# CIS 7.5
+SSLCipherSuite EECDH+AESGCM:EDH+AESGCM
+# CIS 7.5
 SSLHonorCipherOrder on
-SSLCompression off
-SSLSessionTickets off
-SSLUseStapling on
-SSLStaplingCache "shmcb:logs/stapling-cache(150000)"
-Header always set Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+# CIS 7.6
+SSLInsecureRenegotiation off
+ # CIS 7.7
+#SSLCompression off
+# CIS 7.8
+SSLCipherSuite EECDH:EDH:!NULL:!SSLv2:!RC4:!aNULL:!3DES:!IDEA
+# CIS 7.8
+SSLHonorCipherOrder on
+# CIS 7.10
+SSLUseStapling On
+# CIS 7.10
+SSLStaplingCache "shmcb:/var/run/ocsp(128000)"
+# CIS 7.11
+Header always set Strict-Transport-Security "max-age=63072000; includeSubdomains; preload"
+# CIS 7.12
+SSLCipherSuite ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-DSS-AES128-GCM-SHA256:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:DHE-RSA-AES256-SHA
 EOL
 }
 
@@ -714,6 +772,24 @@ ServerSignature Off
 # CIS 8.4: Disable ETag
 FileETag None
 EOL
+
+# CIS 8.3: Ensure All Default Apache Content Is Removed
+#
+#    case $DISTRO in
+#        debian)
+#            rm -f /var/www/html/index.html
+#                       rm -rf /usr/share/apache2/icons/
+#                       rm -rf /usr/share/apache2/manual/
+#                       rm -rf /usr/share/apache2/error/
+#            ;;
+#        redhat)
+#            rm -f /var/www/html/index.html
+#                       rm -rf /usr/share/httpd/icons/
+#                       rm -rf /usr/share/httpd/manual/
+#                       rm -rf /usr/share/httpd/error/
+#            ;;
+#    esac
+
 }
 
 # ------------------------------
@@ -734,40 +810,42 @@ configure_request_limits() {
 
     cat > "$limits_conf" << 'EOL'
 # CIS 9.1-9.6: Timeout Settings
-Timeout 10
-KeepAlive On
-MaxKeepAliveRequests 100
-KeepAliveTimeout 15
-RequestReadTimeout header=40 body=20
+Timeout 10                                                                              # CIS 9.1
+KeepAlive On                                                                    # CIS 9.2
+MaxKeepAliveRequests 100                                                # CIS 9.3
+KeepAliveTimeout 15                                                             # CIS 9.4
+RequestReadTimeout header=20-40,MinRate=500             # CIS 9.5
+RequestReadTimeout body=20,MinRate=500                  # CIS 9.6
 
 # CIS 10.1-10.4: Request Limits
-LimitRequestLine 512
-LimitRequestFields 100
-LimitRequestFieldSize 1024
-LimitRequestBody 102400
+LimitRequestLine 512                    # CIS 10.1
+LimitRequestFields 100                  # CIS 10.2
+LimitRequestFieldSize 1024              # CIS 10.3
+LimitRequestBody 102400                 # CIS 10.4
 EOL
 }
 
 # Funzione principale che esegue tutti i controlli
 main() {
-    if [ "$EUID" -ne 0 ]; then 
+    if [ "$EUID" -ne 0 ]; then
         echo -e "${RED}Questo script deve essere eseguito come root${NC}"
         exit 1
     fi
     # Identifica la distribuzione
-	detect_distro  
+        detect_distro
 
     # Esegue tutte le funzioni in ordine secondo CIS
-    check_installation
-    manage_modules
+    #check_installation
+    #manage_modules
     secure_permissions
-    configure_access_control
-    configure_security_options
-    configure_logging
-    configure_ssl
-    prevent_info_leakage
-    configure_request_limits
-    
+    #secure_critical_files
+    #configure_access_control
+    #configure_security_options
+    #configure_logging
+    #configure_ssl
+    #prevent_info_leakage
+    #configure_request_limits
+
 # ------------------------------
 # Funzione per riavviare Apache in modo sicuro
 # Include verifiche pre e post riavvio
@@ -779,11 +857,11 @@ restart_apache() {
     local max_restart_attempts=3
     local restart_attempt=1
     local apache_status
-    
+
     # Backup della configurazione corrente
     local backup_dir="/tmp/apache_backup_$(date +%Y%m%d_%H%M%S)"
     local backup_success=false
-    
+
     # Crea directory di backup
     if mkdir -p "$backup_dir"; then
         case $DISTRO in
@@ -799,7 +877,7 @@ restart_apache() {
                 ;;
         esac
     fi
-    
+
     if [ "$backup_success" = true ]; then
         echo -e "${GREEN}Backup della configurazione creato in $backup_dir${NC}"
     else
@@ -856,7 +934,7 @@ restart_apache() {
     # Tentativo di riavvio
     while [ $restart_attempt -le $max_restart_attempts ] && [ "$restart_success" = false ]; do
         echo "Tentativo di riavvio $restart_attempt di $max_restart_attempts..."
-        
+
         # Se Apache è in esecuzione, prova prima un graceful restart
         if [ $apache_status -eq 0 ]; then
             echo "Apache è in esecuzione, tentativo di graceful restart..."
@@ -890,7 +968,7 @@ restart_apache() {
     # Verifica post-riavvio
     if [ "$restart_success" = true ]; then
         echo -e "${GREEN}Apache riavviato con successo${NC}"
-        
+
         # Verifica le porte in ascolto
         echo "Verifica porte in ascolto..."
         if command -v ss >/dev/null 2>&1; then
@@ -898,11 +976,11 @@ restart_apache() {
         elif command -v netstat >/dev/null 2>&1; then
             netstat -tlnp | grep -E "(apache2|httpd)"
         fi
-        
+
         # Verifica i processi
         echo "Processi Apache in esecuzione:"
         ps aux | grep -E "(apache2|httpd)" | grep -v grep
-        
+
         # Verifica sintomi comuni di problemi
         local error_log
         case $DISTRO in
@@ -913,14 +991,14 @@ restart_apache() {
                 error_log="/var/log/httpd/error.log"
                 ;;
         esac
-        
+
         echo "Ultimi errori nel log (se presenti):"
         tail -n 5 "$error_log" | grep -i "error"
-        
+
         return 0
     else
         echo -e "${RED}Impossibile riavviare Apache dopo $max_restart_attempts tentativi${NC}"
-        
+
         # Ripristino backup se disponibile
         if [ "$backup_success" = true ]; then
             echo "Ripristino della configurazione precedente..."
@@ -936,13 +1014,13 @@ restart_apache() {
             esac
             echo -e "${GREEN}Configurazione precedente ripristinata${NC}"
         fi
-        
+
         return 1
     fi
 }
 
-    restart_apache
-    
+    #restart_apache
+
     echo -e "${GREEN}Implementazione controlli CIS completata${NC}"
     echo -e "${YELLOW}Nota: Alcuni controlli CIS potrebbero richiedere configurazione manuale aggiuntiva${NC}"
 }
