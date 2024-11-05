@@ -96,7 +96,7 @@ else
         print_section "Esecuzione Remediation"
         
         # Backup delle configurazioni degli utenti
-        timestamp=$(date +%Y%m%d_%H%M%S)
+        timestamp=$(date +%Y%m%d_%H%M%S)_CIS_3.2
         backup_dir="/root/apache_user_shell_backup_$timestamp"
         mkdir -p "$backup_dir"
         
