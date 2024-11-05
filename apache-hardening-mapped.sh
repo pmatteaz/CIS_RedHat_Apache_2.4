@@ -275,7 +275,7 @@ check_dependencies() {
 # ------------------------------
 check_installation() {
 
-   echo "Implementando CIS 1.3"
+   echo "Implementando CIS 1 "
    ## CIS 1.2: Verifica che il server non sia multi-uso
    #local critical_services=("mysql" "postgresql" "named" "dhcpd" "dovecot" "samba")
    #for service in "${critical_services[@]}"; do
