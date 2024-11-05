@@ -27,15 +27,15 @@ fi
 
 # Determina il tipo di sistema e i percorsi
 if [ -f /etc/redhat-release ]; then
-    APACHE_USER="apache"
-    APACHE_GROUP="apache"
+    APACHE_USER="root"
+    APACHE_GROUP="root"
     APACHE_CONFIG_DIR="/etc/httpd"
     APACHE_LOG_DIR="/var/log/httpd"
     APACHE_BINARY="/usr/sbin/httpd"
     APACHE_DOC_ROOT="/var/www/html"
 elif [ -f /etc/debian_version ]; then
-    APACHE_USER="www-data"
-    APACHE_GROUP="www-data"
+    APACHE_USER="root"
+    APACHE_GROUP="root"
     APACHE_CONFIG_DIR="/etc/apache2"
     APACHE_LOG_DIR="/var/log/apache2"
     APACHE_BINARY="/usr/sbin/apache2"
@@ -51,7 +51,6 @@ DIR_GROUP_MAP=(
     ["$APACHE_CONFIG_DIR"]="root"
     ["$APACHE_LOG_DIR"]="$APACHE_GROUP"
     ["$APACHE_DOC_ROOT"]="$APACHE_GROUP"
-    ["$(dirname $APACHE_BINARY)"]="root"
 )
 
 # Array per memorizzare i problemi trovati
@@ -64,12 +63,12 @@ check_group() {
     local path="$1"
     local expected_group="$2"
     local type="$3"  # 'file' o 'directory'
-    
+
     if [ ! -e "$path" ]; then
         echo -e "${YELLOW}Path non trovato: $path${NC}"
         return
-    }
-    
+    fi
+
     local current_group=$(stat -c '%G' "$path")
     if [ "$current_group" != "$expected_group" ]; then
         echo -e "${RED}✗ $type $path ha gruppo errato (attuale: $current_group, atteso: $expected_group)${NC}"
@@ -103,30 +102,30 @@ if [ ${#wrong_group[@]} -gt 0 ]; then
     echo -e "\n${YELLOW}Sono stati trovati ${#wrong_group[@]} file/directory con gruppo errato.${NC}"
     echo -e "${YELLOW}Vuoi procedere con la remediation? (s/n)${NC}"
     read -r risposta
-    
+
     if [[ "$risposta" =~ ^[Ss]$ ]]; then
         print_section "Esecuzione Remediation"
-        
+
         # Backup delle configurazioni
         timestamp=$(date +%Y%m%d_%H%M%S)
         backup_dir="/root/apache_group_backup_$timestamp"
         mkdir -p "$backup_dir"
-        
+
         echo "Creazione backup della configurazione in $backup_dir..."
-        
+
         # Crea un file di log dei permessi attuali
         echo -e "\n${YELLOW}Creazione log dei permessi attuali...${NC}"
         for entry in "${wrong_group[@]}"; do
             path=${entry%|*}
             ls -l "$path" >> "$backup_dir/permissions.log"
         done
-        
+
         # Correggi i gruppi
         echo -e "\n${YELLOW}Correzione gruppi...${NC}"
         for entry in "${wrong_group[@]}"; do
             path=${entry%|*}
             expected_group=${entry#*|}
-            
+
             if [ -e "$path" ]; then
                 echo "Correzione gruppo per: $path"
                 if [ -d "$path" ]; then
@@ -149,7 +148,7 @@ if [ ${#wrong_group[@]} -gt 0 ]; then
                         chmod 640 "$path"
                     fi
                 fi
-                
+
                 # Verifica il risultato
                 if [ "$(stat -c '%G' "$path")" = "$expected_group" ]; then
                     echo -e "${GREEN}✓ Gruppo corretto con successo per $path${NC}"
@@ -158,19 +157,19 @@ if [ ${#wrong_group[@]} -gt 0 ]; then
                 fi
             fi
         done
-        
+
         # Impostazioni speciali per i binari
         if [ -f "$APACHE_BINARY" ]; then
             chgrp root "$APACHE_BINARY"
             chmod 755 "$APACHE_BINARY"
             echo -e "${GREEN}✓ Permessi binario Apache corretti${NC}"
         fi
-        
+
         # Verifica configurazione Apache
         echo -e "\n${YELLOW}Verifica della configurazione di Apache...${NC}"
         if $APACHE_BINARY -t 2>/dev/null || apache2ctl -t 2>/dev/null; then
             echo -e "${GREEN}✓ Configurazione di Apache valida${NC}"
-            
+
             # Riavvio di Apache
             echo -e "\n${YELLOW}Riavvio di Apache...${NC}"
             if systemctl restart httpd 2>/dev/null || systemctl restart apache2 2>/dev/null; then
@@ -182,14 +181,14 @@ if [ ${#wrong_group[@]} -gt 0 ]; then
             echo -e "${RED}✗ Errore nella configurazione di Apache${NC}"
             echo -e "${YELLOW}Ripristino del backup consigliato${NC}"
         fi
-        
+
         # Verifica finale
         print_section "Verifica Finale"
         errors=0
         for entry in "${wrong_group[@]}"; do
             path=${entry%|*}
             expected_group=${entry#*|}
-            
+
             if [ -e "$path" ]; then
                 current_group=$(stat -c '%G' "$path")
                 if [ "$current_group" != "$expected_group" ]; then
@@ -200,13 +199,13 @@ if [ ${#wrong_group[@]} -gt 0 ]; then
                 fi
             fi
         done
-        
+
         if [ $errors -eq 0 ]; then
             echo -e "\n${GREEN}✓ Tutti i gruppi sono stati corretti con successo${NC}"
         else
             echo -e "\n${RED}✗ Alcuni file/directory presentano ancora problemi${NC}"
         fi
-        
+
     else
         echo -e "${YELLOW}Remediation annullata dall'utente${NC}"
     fi
@@ -225,9 +224,3 @@ if [ -d "$backup_dir" ]; then
     echo -e "\n2. Backup delle configurazioni salvato in: $backup_dir"
     echo "   - Log dei permessi originali: $backup_dir/permissions.log"
 fi
-
-echo -e "\n${BLUE}Nota: La corretta configurazione dei gruppi garantisce che:${NC}"
-echo -e "${BLUE}- I file di configurazione siano accessibili solo agli utenti autorizzati${NC}"
-echo -e "${BLUE}- L'utente Apache possa accedere solo ai file necessari${NC}"
-echo -e "${BLUE}- I log siano scrivibili dal processo Apache${NC}"
-echo -e "${BLUE}- I file sensibili siano protetti da accessi non autorizzati${NC}"
