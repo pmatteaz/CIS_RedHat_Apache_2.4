@@ -74,7 +74,7 @@ if echo "$ACTIVE_MODULES" | grep -q "autoindex_module"; then
         print_section "Esecuzione Remediation"
         
         # Backup della configurazione
-        timestamp=$(date +%Y%m%d_%H%M%S)
+        timestamp=$(date +%Y%m%d_%H%M%S)_CIS_2.5
         backup_dir="/root/apache_autoindex_backup_$timestamp"
         mkdir -p "$backup_dir"
         
@@ -192,5 +192,3 @@ if [ -d "$backup_dir" ]; then
     echo "3. Backup della configurazione disponibile in: $backup_dir"
 fi
 
-echo -e "\n${BLUE}Nota: La disabilitazione del modulo autoindex migliora la sicurezza impedendo il listing delle directory${NC}"
-echo -e "${BLUE}Assicurati di avere pagine di indice (index.html, index.php, ecc.) in tutte le directory accessibili${NC}"
