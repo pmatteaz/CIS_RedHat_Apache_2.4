@@ -103,7 +103,7 @@ if [ ${#active_proxy_modules[@]} -gt 0 ]; then
         print_section "Esecuzione Remediation"
         
         # Backup della configurazione
-        timestamp=$(date +%Y%m%d_%H%M%S)
+        timestamp=$(date +%Y%m%d_%H%M%S)_CIS_2.6
         backup_dir="/root/apache_proxy_backup_$timestamp"
         mkdir -p "$backup_dir"
         
