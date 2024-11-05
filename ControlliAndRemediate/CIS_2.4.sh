@@ -180,6 +180,3 @@ echo "2. Controlla i file di configurazione in: $APACHE_CONFIG_DIR"
 if [ -d "$backup_dir" ]; then
     echo "3. Backup della configurazione disponibile in: $backup_dir"
 fi
-
-echo -e "\n${BLUE}Nota: La disabilitazione del modulo status migliora la sicurezza nascondendo informazioni sul server${NC}"
-echo -e "${BLUE}Se necessiti di monitoraggio del server, considera soluzioni alternative più sicure${NC}"
