@@ -158,7 +158,7 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         echo -e "${GREEN}La maggior parte dei problemi è stata risolta. Verifica manualmente la configurazione.${NC}"
         
         # Backup della configurazione
-        timestamp=$(date +%Y%m%d_%H%M%S)
+        timestamp=$(date +%Y%m%d_%H%M%S)_CIS_1.1
         backup_dir="/root/apache_preinstall_backup_$timestamp"
         mkdir -p "$backup_dir"
         
