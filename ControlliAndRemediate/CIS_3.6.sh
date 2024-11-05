@@ -91,7 +91,7 @@ if [ ${#wrong_permissions[@]} -gt 0 ]; then
         print_section "Esecuzione Remediation"
 
         # Backup delle configurazioni
-        timestamp=$(date +%Y%m%d_%H%M%S)
+        timestamp=$(date +%Y%m%d_%H%M%S)_CIS_3.6
         backup_dir="/root/apache_perms_backup_$timestamp"
         mkdir -p "$backup_dir"
 
