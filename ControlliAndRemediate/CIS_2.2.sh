@@ -60,7 +60,7 @@ else
         print_section "Esecuzione Remediation"
         
         # Backup della configurazione
-        timestamp=$(date +%Y%m%d_%H%M%S)
+        timestamp=$(date +%Y%m%d_%H%M%S)_CIS_2.2
         backup_dir="/root/apache_logconfig_backup_$timestamp"
         mkdir -p "$backup_dir"
         
