@@ -19,16 +19,19 @@ print_section() {
 }
 
 # Lista dei moduli di autenticazione comunemente non necessari
+#UNNECESSARY_AUTH_MODULES=(
+#    "auth_digest_module"
+#    "auth_form_module"
+#    "authn_anon_module"
+#    "authn_dbd_module"
+#    "authn_dbm_module"
+#    "authn_socache_module"
+#    "authz_dbd_module"
+#    "authz_dbm_module"
+#    "authz_owner_module"
+#)
 UNNECESSARY_AUTH_MODULES=(
     "auth_digest_module"
-    "auth_form_module"
-    "authn_anon_module"
-    "authn_dbd_module"
-    "authn_dbm_module"
-    "authn_socache_module"
-    "authz_dbd_module"
-    "authz_dbm_module"
-    "authz_owner_module"
 )
 
 # Lista dei moduli di autenticazione essenziali
