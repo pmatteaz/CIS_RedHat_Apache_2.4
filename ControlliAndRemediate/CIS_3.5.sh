@@ -107,7 +107,7 @@ if [ ${#wrong_group[@]} -gt 0 ]; then
         print_section "Esecuzione Remediation"
 
         # Backup delle configurazioni
-        timestamp=$(date +%Y%m%d_%H%M%S)
+        timestamp=$(date +%Y%m%d_%H%M%S)_CIS3.5
         backup_dir="/root/apache_group_backup_$timestamp"
         mkdir -p "$backup_dir"
 
