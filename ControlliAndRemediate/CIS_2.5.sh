@@ -52,13 +52,13 @@ ACTIVE_MODULES=$($APACHE_CMD -M 2>/dev/null || apache2ctl -M 2>/dev/null)
 
 if echo "$ACTIVE_MODULES" | grep -q "autoindex_module"; then
     echo -e "${RED}✗ Modulo autoindex è attualmente attivo${NC}"
-    
+
     # Cerca configurazioni del modulo autoindex
     echo -e "\n${YELLOW}Ricerca configurazioni del modulo autoindex...${NC}"
-    
+
     # Array per memorizzare i file con configurazioni autoindex
     declare -a autoindex_configs=()
-    
+
     # Cerca nelle directory di configurazione
     while IFS= read -r -d '' file; do
         if grep -l "Options.*Indexes\|autoindex_module\|Options.*MultiViews" "$file" >/dev/null 2>&1; then
@@ -66,20 +66,20 @@ if echo "$ACTIVE_MODULES" | grep -q "autoindex_module"; then
             echo -e "${RED}Trovata configurazione autoindex in: $file${NC}"
         fi
     done < <(find "$APACHE_CONFIG_DIR" -type f -print0)
-    
+
     echo -e "\n${YELLOW}Vuoi procedere con la disabilitazione del modulo autoindex? (s/n)${NC}"
     read -r risposta
-    
+
     if [[ "$risposta" =~ ^[Ss]$ ]]; then
         print_section "Esecuzione Remediation"
-        
+
         # Backup della configurazione
         timestamp=$(date +%Y%m%d_%H%M%S)_CIS_2.5
         backup_dir="/root/apache_autoindex_backup_$timestamp"
         mkdir -p "$backup_dir"
-        
+
         echo "Creazione backup della configurazione in $backup_dir..."
-        
+
         # Backup dei file di configurazione
         if [ "$APACHE_CMD" = "httpd" ]; then
             cp -r "$MODULES_DIR" "$backup_dir/"
@@ -89,58 +89,54 @@ if echo "$ACTIVE_MODULES" | grep -q "autoindex_module"; then
             cp -r "$APACHE_CONFIG_DIR/mods-available" "$backup_dir/"
             cp -r "$APACHE_CONFIG_DIR/conf-enabled" "$backup_dir/"
         fi
-        
+
         # Disabilitazione del modulo autoindex
         echo -e "\n${YELLOW}Disabilitazione modulo autoindex...${NC}"
-        
+
         # Per sistemi Red Hat
         if [ "$APACHE_CMD" = "httpd" ]; then
             # Cerca e commenta il LoadModule per autoindex_module
             find "$MODULES_DIR" -type f -name "*.conf" -exec sed -i 's/^LoadModule autoindex_module/##LoadModule autoindex_module/' {} \;
-            
+
             # Modifica le opzioni Indexes nei file di configurazione
             for config in "${autoindex_configs[@]}"; do
                 # Rimuovi Indexes dalle Options
-                sed -i 's/Options.*Indexes/Options/g' "$config"
-                sed -i 's/Options.*MultiViews/Options/g' "$config"
-                # Aggiungi -Indexes se non presente
-                sed -i '/Options/ s/$/ -Indexes/' "$config"
+                sed -i 's/Options.*Indexes/#Options/' "$config"
+                sed -i 's/Options.*MultiViews/#Options/' "$config"
             done
-            
+
         # Per sistemi Debian
         else
             if ! a2dismod autoindex; then
                 echo -e "${RED}Errore nella disabilitazione del modulo autoindex${NC}"
                 exit 1
             fi
-            
+
             # Modifica le opzioni Indexes nei file di configurazione
             for config in "${autoindex_configs[@]}"; do
                 # Rimuovi Indexes dalle Options
-                sed -i 's/Options.*Indexes/Options/g' "$config"
-                sed -i 's/Options.*MultiViews/Options/g' "$config"
-                # Aggiungi -Indexes se non presente
-                sed -i '/Options/ s/$/ -Indexes/' "$config"
+                sed -i 's/Options.*Indexes/#Options/g' "$config"
+                sed -i 's/Options.*MultiViews/#Options/g' "$config"
             done
         fi
-        
+
         # Verifica della configurazione di Apache
         echo -e "\n${YELLOW}Verifica della configurazione di Apache...${NC}"
         if $APACHE_CMD -t 2>/dev/null || apache2ctl -t 2>/dev/null; then
             echo -e "${GREEN}✓ Configurazione di Apache valida${NC}"
-            
+
             # Riavvio di Apache
             echo -e "\n${YELLOW}Riavvio di Apache...${NC}"
             if systemctl restart $APACHE_CMD 2>/dev/null || systemctl restart apache2 2>/dev/null; then
                 echo -e "${GREEN}✓ Apache riavviato con successo${NC}"
-                
+
                 # Verifica finale
                 print_section "Verifica Finale"
                 FINAL_MODULES=$($APACHE_CMD -M 2>/dev/null || apache2ctl -M 2>/dev/null)
-                
+
                 if ! echo "$FINAL_MODULES" | grep -q "autoindex_module"; then
                     echo -e "${GREEN}✓ Modulo autoindex disabilitato con successo${NC}"
-                    
+
                     # Test di directory listing
                     if command_exists curl; then
                         echo -e "\n${YELLOW}Verifica directory listing...${NC}"
@@ -156,14 +152,14 @@ if echo "$ACTIVE_MODULES" | grep -q "autoindex_module"; then
                 else
                     echo -e "${RED}✗ Modulo autoindex è ancora attivo${NC}"
                 fi
-                
+
             else
                 echo -e "${RED}✗ Errore durante il riavvio di Apache${NC}"
             fi
         else
             echo -e "${RED}✗ Errore nella configurazione di Apache${NC}"
             echo -e "${YELLOW}Ripristino del backup...${NC}"
-            
+
             if [ "$APACHE_CMD" = "httpd" ]; then
                 cp -r "$backup_dir/conf.modules.d/"* "$MODULES_DIR/"
                 cp -r "$backup_dir/conf/"* "$CONF_DIR/"
@@ -172,11 +168,11 @@ if echo "$ACTIVE_MODULES" | grep -q "autoindex_module"; then
                 cp -r "$backup_dir/mods-available/"* "$APACHE_CONFIG_DIR/mods-available/"
                 cp -r "$backup_dir/conf-enabled/"* "$APACHE_CONFIG_DIR/conf-enabled/"
             fi
-            
+
             systemctl restart $APACHE_CMD 2>/dev/null || systemctl restart apache2 2>/dev/null
             echo -e "${GREEN}Backup ripristinato${NC}"
         fi
-        
+
     else
         echo -e "${YELLOW}Remediation annullata dall'utente${NC}"
     fi
@@ -191,4 +187,3 @@ echo "2. Controlla i file di configurazione in: $APACHE_CONFIG_DIR"
 if [ -d "$backup_dir" ]; then
     echo "3. Backup della configurazione disponibile in: $backup_dir"
 fi
-
