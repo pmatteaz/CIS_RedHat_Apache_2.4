@@ -50,12 +50,12 @@ declare -a issues_found=()
         timestamp=$(date +%Y%m%d_%H%M%S)
         backup_dir="/root/apache_coredump_backup_$timestamp"
         mkdir -p "$backup_dir"
-        
+
         echo "Creazione backup della configurazione in $backup_dir..."
         cp "$APACHE_CONF_FILE" "$backup_dir/"
-        
+
 print_section "Verifica Configurazione Core Dump e remediatation"
-        
+
 # Aggiorna la configurazione Apache
         if grep -q "^CoreDumpDirectory" "$APACHE_CONF_FILE"; then
             echo -e "\n${YELLOW}Commento la configurazione CoreDumpDirectory...${NC}"
@@ -68,15 +68,15 @@ print_section "Verifica Configurazione Core Dump e remediatation"
         else
             echo -e "\n${GREEN}Aggiornamento configurazione CoreDumpDirectory non esistente...${NC}"
         fi
-        
+
     if [[ "$risposta" =~ ^[Ss]$ ]]; then
         print_section "Remediation eseguita"
-        
+
         # Verifica la configurazione di Apache
         echo -e "\n${YELLOW}Verifica della configurazione di Apache...${NC}"
         if $APACHE_CONFIG_DIR/bin/httpd -t 2>/dev/null || apache2ctl -t 2>/dev/null; then
             echo -e "${GREEN}✓ Configurazione di Apache valida${NC}"
-            
+
             # Riavvio di Apache
             echo -e "\n${YELLOW}Riavvio di Apache...${NC}"
             if systemctl restart httpd 2>/dev/null || systemctl restart apache2 2>/dev/null; then
@@ -90,10 +90,10 @@ print_section "Verifica Configurazione Core Dump e remediatation"
             cp "$backup_dir/$(basename "$APACHE_CONF_FILE")" "$APACHE_CONF_FILE"
             echo -e "${GREEN}Backup ripristinato${NC}"
         fi
-        
+
         # Verifica finale
         print_section "Verifica Finale"
-        
+
         echo "Controllo configurazione finale..."
         if grep -q "^CoreDumpDirectory $CORE_DUMP_DIR" "$APACHE_CONF_FILE"; then
             echo -e "${GREEN}✓ CoreDumpDirectory correttamente configurata${NC}"
@@ -101,7 +101,7 @@ print_section "Verifica Configurazione Core Dump e remediatation"
             echo -e "${RED}✗ CoreDumpDirectory non configurata correttamente${NC}"
         fi
     else
-        echo -e "${YELLOW}Remediation annullata dall'utente${NC}"
+        echo -e "${YELLOW}Remediation non necessaria${NC}"
     fi
 
 # Riepilogo finale
@@ -110,4 +110,3 @@ echo "1. File di configurazione: $APACHE_CONF_FILE"
 if [ -d "$backup_dir" ]; then
     echo "2. Backup della configurazione: $backup_dir"
 fi
-
