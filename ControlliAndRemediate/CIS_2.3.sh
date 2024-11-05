@@ -169,6 +169,3 @@ print_section "Riepilogo Finale"
 echo "1. Verifica i moduli attivi con: $APACHE_CMD -M | grep dav_"
 echo "2. Controlla i file di configurazione in: $APACHE_CONFIG_DIR"
 echo "3. Se necessario, i backup sono disponibili in: $backup_dir"
-
-echo -e "\n${BLUE}Nota: Se le tue applicazioni web richiedono WebDAV, valuta attentamente l'impatto della disabilitazione${NC}"
-echo -e "${BLUE}Se WebDAV è necessario, considera l'implementazione di misure di sicurezza aggiuntive${NC}"
