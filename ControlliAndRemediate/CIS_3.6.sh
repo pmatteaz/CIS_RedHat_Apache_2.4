@@ -55,13 +55,13 @@ print_section "Verifica Permessi di Scrittura"
 check_permissions() {
     local path="$1"
     echo -e "\nControllo permessi in: $path"
-    
+
     while IFS= read -r -d '' file; do
         # Verifica se il file ha permessi di scrittura per "others"
         if [ -h "$file" ]; then
             continue  # Salta i link simbolici
         fi
-        
+
         perms=$(stat -c '%a' "$file")
         ultima_cifra="${perms: -1}"
         perms=$ultima_cifra
@@ -69,7 +69,7 @@ check_permissions() {
             echo -e "${RED}✗ Trovato file con permessi di scrittura 'other': $file (${perms})${NC}"
             wrong_permissions+=("$file")
         fi
-    done <( find "$path" -not -type l -print )
+    done < <(find "$path" -not -type l -print0)
 }
 
 # Controlla tutte le directory Apache
@@ -86,31 +86,31 @@ if [ ${#wrong_permissions[@]} -gt 0 ]; then
     echo -e "\n${YELLOW}Sono stati trovati ${#wrong_permissions[@]} file/directory con permessi di scrittura 'other' non sicuri.${NC}"
     echo -e "${YELLOW}Vuoi procedere con la remediation? (s/n)${NC}"
     read -r risposta
-    
+
     if [[ "$risposta" =~ ^[Ss]$ ]]; then
         print_section "Esecuzione Remediation"
-        
+
         # Backup delle configurazioni
         timestamp=$(date +%Y%m%d_%H%M%S)
         backup_dir="/root/apache_perms_backup_$timestamp"
         mkdir -p "$backup_dir"
-        
+
         echo "Creazione backup della configurazione in $backup_dir..."
-        
+
         # Crea un file di log dei permessi attuali
         echo -e "\n${YELLOW}Creazione log dei permessi attuali...${NC}"
         for file in "${wrong_permissions[@]}"; do
             current_perms=$(stat -c '%a %n' "$file")
             echo "$current_perms" >> "$backup_dir/permissions.log"
         done
-        
+
         # Correggi i permessi
         echo -e "\n${YELLOW}Correzione permessi...${NC}"
         for file in "${wrong_permissions[@]}"; do
             if [ -e "$file" ]; then
                 echo "Rimozione permessi di scrittura 'other' per: $file"
                 original_perms=$(stat -c '%a' "$file")
-                
+
                 # Rimuovi permesso di scrittura per others
                 if [ -d "$file" ]; then
                     chmod o-w "$file"
@@ -121,7 +121,7 @@ if [ ${#wrong_permissions[@]} -gt 0 ]; then
                 else
                     chmod o-w "$file"
                 fi
-                
+
                 # Verifica il risultato
                 new_perms=$(stat -c '%a' "$file")
                 if [ $((new_perms & 2)) -eq 0 ]; then
@@ -131,12 +131,12 @@ if [ ${#wrong_permissions[@]} -gt 0 ]; then
                 fi
             fi
         done
-        
+
         # Verifica configurazione Apache
         echo -e "\n${YELLOW}Verifica della configurazione di Apache...${NC}"
         if $APACHE_CONFIG_DIR/bin/httpd -t 2>/dev/null || apache2ctl -t 2>/dev/null; then
             echo -e "${GREEN}✓ Configurazione di Apache valida${NC}"
-            
+
             # Riavvio di Apache
             echo -e "\n${YELLOW}Riavvio di Apache...${NC}"
             if systemctl restart httpd 2>/dev/null || systemctl restart apache2 2>/dev/null; then
@@ -148,7 +148,7 @@ if [ ${#wrong_permissions[@]} -gt 0 ]; then
             echo -e "${RED}✗ Errore nella configurazione di Apache${NC}"
             echo -e "${YELLOW}Ripristino del backup consigliato${NC}"
         fi
-        
+
         # Verifica finale
         print_section "Verifica Finale"
         errors=0
@@ -163,13 +163,13 @@ if [ ${#wrong_permissions[@]} -gt 0 ]; then
                 fi
             fi
         done
-        
+
         if [ $errors -eq 0 ]; then
             echo -e "\n${GREEN}✓ Tutti i permessi sono stati corretti con successo${NC}"
         else
             echo -e "\n${RED}✗ Alcuni file presentano ancora problemi${NC}"
         fi
-        
+
     else
         echo -e "${YELLOW}Remediation annullata dall'utente${NC}"
     fi
