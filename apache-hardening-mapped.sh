@@ -630,7 +630,6 @@ RewriteRule  .* - [F]
     Require all denied
 </FilesMatch>
 
-
 # CIS 5.13: Restrict file extensions
 #<FilesMatch "\.(?i:ph(p[3457]?|t|tml)|aspx?|jsp|cfm|cgi)$">
 <FilesMatch "^.*\.(bak|config|sql|fla|psd|ini|log|sh|inc|swp|dist|old|original|template|php~|php#)$">
@@ -648,9 +647,6 @@ EOL
 # CIS 5.15: Security Headers
 sed -i 's/Listen 80/Listen 192.168.1.1:80/' $apache_conf
 }
-
-
-
 
 # ------------------------------
 # CIS 6: Logging, Monitoring and Maintenance
