@@ -78,7 +78,7 @@ if [ ${#active_webdav_modules[@]} -gt 0 ]; then
         print_section "Esecuzione Remediation"
         
         # Backup della configurazione
-        timestamp=$(date +%Y%m%d_%H%M%S)
+        timestamp=$(date +%Y%m%d_%H%M%S)_CIS_2.3
         backup_dir="/root/apache_webdav_backup_$timestamp"
         mkdir -p "$backup_dir"
         
