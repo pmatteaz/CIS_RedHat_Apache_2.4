@@ -72,7 +72,7 @@ check_ownership() {
     if [ ! -e "$path" ]; then
         echo -e "${YELLOW}Path non trovato: $path${NC}"
         return
-    }
+    fi
     
     local owner=$(stat -c '%U' "$path")
     if [ "$owner" != "root" ]; then
