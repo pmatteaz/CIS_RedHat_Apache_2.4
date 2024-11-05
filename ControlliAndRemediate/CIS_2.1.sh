@@ -106,7 +106,7 @@ if [ ${#active_unnecessary[@]} -gt 0 ]; then
         print_section "Esecuzione Remediation"
         
         # Backup della configurazione
-        timestamp=$(date +%Y%m%d_%H%M%S)
+        timestamp=$(date +%Y%m%d_%H%M%S)_CIS_2.1
         backup_dir="/root/apache_modules_backup_$timestamp"
         mkdir -p "$backup_dir"
         
