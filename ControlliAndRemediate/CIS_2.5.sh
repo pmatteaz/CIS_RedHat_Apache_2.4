@@ -72,7 +72,7 @@ if echo "$ACTIVE_MODULES" | grep -q "status_module"; then
         print_section "Esecuzione Remediation"
 
         # Backup della configurazione
-        timestamp=$(date +%Y%m%d_%H%M%S)
+        timestamp=$(date +%Y%m%d_%H%M%S)_CIS_2.5
         backup_dir="/root/apache_status_backup_$timestamp"
         mkdir -p "$backup_dir"
 
