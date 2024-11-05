@@ -87,7 +87,7 @@ fi
 
 # Verifica l'utente effettivo sotto cui gira Apache
 if pgrep -x "$APACHE_CMD" > /dev/null; then
-    RUNNING_USER=$(ps -ef | grep "$APACHE_CMD" | grep -v grep | head -n 1 | awk '{print $1}')
+    RUNNING_USER=$(ps -ef | grep "$APACHE_CMD" | grep -v grep | tail -n 1 | awk '{print $1}')
     if [ "$RUNNING_USER" = "root" ]; then
         echo -e "${RED}✗ Apache sta attualmente girando come root${NC}"
         issues_found+=("Currently_running_as_root")
@@ -101,18 +101,18 @@ if [ ${#issues_found[@]} -gt 0 ]; then
     echo -e "\n${YELLOW}Sono stati trovati dei problemi con la configurazione dell'utente Apache.${NC}"
     echo -e "${YELLOW}Vuoi procedere con la remediation? (s/n)${NC}"
     read -r risposta
-    
+
     if [[ "$risposta" =~ ^[Ss]$ ]]; then
         print_section "Esecuzione Remediation"
-        
+
         # Backup della configurazione
         timestamp=$(date +%Y%m%d_%H%M%S)_CIS_3.1
         backup_dir="/root/apache_user_backup_$timestamp"
         mkdir -p "$backup_dir"
-        
+
         echo "Creazione backup della configurazione in $backup_dir..."
         cp -r "$APACHE_CONFIG_DIR" "$backup_dir/"
-        
+
         # Verifica se l'utente apache/www-data esiste
         if ! id -u "$DEFAULT_APACHE_USER" >/dev/null 2>&1; then
             echo -e "${YELLOW}Creazione utente $DEFAULT_APACHE_USER...${NC}"
@@ -125,12 +125,12 @@ if [ ${#issues_found[@]} -gt 0 ]; then
                 exit 1
             fi
         fi
-        
+
         # Modifica il file di configurazione
         echo -e "\n${YELLOW}Aggiornamento configurazione Apache...${NC}"
         sed -i "s/^User.*$/User $DEFAULT_APACHE_USER/" "$MAIN_CONFIG"
         sed -i "s/^Group.*$/Group $DEFAULT_APACHE_GROUP/" "$MAIN_CONFIG"
-        
+
         # Imposta i permessi corretti sulle directory principali
         echo -e "\n${YELLOW}Impostazione permessi sulle directory...${NC}"
         directories=(
@@ -138,7 +138,7 @@ if [ ${#issues_found[@]} -gt 0 ]; then
             "/var/log/$APACHE_CMD"
             "/var/run/$APACHE_CMD"
         )
-        
+
         for dir in "${directories[@]}"; do
             if [ -d "$dir" ]; then
                 chown -R "$DEFAULT_APACHE_USER:$DEFAULT_APACHE_GROUP" "$dir"
@@ -146,17 +146,17 @@ if [ ${#issues_found[@]} -gt 0 ]; then
                 echo -e "${GREEN}✓ Permessi aggiornati per $dir${NC}"
             fi
         done
-        
+
         # Verifica della configurazione di Apache
         echo -e "\n${YELLOW}Verifica della configurazione di Apache...${NC}"
         if $APACHE_CMD -t 2>/dev/null || apache2ctl -t 2>/dev/null; then
             echo -e "${GREEN}✓ Configurazione di Apache valida${NC}"
-            
+
             # Riavvio di Apache
             echo -e "\n${YELLOW}Riavvio di Apache...${NC}"
             if systemctl restart $APACHE_CMD; then
                 echo -e "${GREEN}✓ Apache riavviato con successo${NC}"
-                
+
                 # Verifica finale
                 print_section "Verifica Finale"
                 NEW_RUNNING_USER=$(ps -ef | grep "$APACHE_CMD" | grep -v grep | head -n 1 | awk '{print $1}')
@@ -179,7 +179,7 @@ if [ ${#issues_found[@]} -gt 0 ]; then
             systemctl restart $APACHE_CMD
             echo -e "${GREEN}Backup ripristinato${NC}"
         fi
-        
+
     else
         echo -e "${YELLOW}Remediation annullata dall'utente${NC}"
     fi
@@ -194,9 +194,3 @@ echo "2. Controlla l'utente in esecuzione con: ps -ef | grep $APACHE_CMD"
 if [ -d "$backup_dir" ]; then
     echo "3. Backup della configurazione disponibile in: $backup_dir"
 fi
-
-echo -e "\n${BLUE}Nota: Assicurati che l'utente Apache:${NC}"
-echo -e "${BLUE}- Non abbia accesso alla shell${NC}"
-echo -e "${BLUE}- Abbia i minimi privilegi necessari${NC}"
-echo -e "${BLUE}- Non possa accedere a file al di fuori della sua directory home${NC}"
-echo -e "${BLUE}- Sia utilizzato solo per il servizio Apache${NC}"
