@@ -1,4 +1,3 @@
-## 2.2 Ensure the Log Config Module Is Enabled
 #!/bin/bash
 
 # Colori per output
