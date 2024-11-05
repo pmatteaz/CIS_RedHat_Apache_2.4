@@ -67,7 +67,7 @@ check_permissions() {
             echo -e "${RED}✗ Trovato file con permessi di scrittura 'other': $file (${perms})${NC}"
             wrong_permissions+=("$file")
         fi
-    done < <(find "$path" -not -type l -print0)
+    done <<(find "$path" -not -type l -print0)
 }
 
 # Controlla tutte le directory Apache
