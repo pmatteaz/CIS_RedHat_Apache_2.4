@@ -66,7 +66,7 @@ print_section "Verifica Configurazione Core Dump e remediatation"
                 echo -e "${RED}✗ Errore nella rimozione della configurazione${NC}"
             fi
         else
-            echo -e "\n${GREEN}Aggiornamento configurazione CoreDumpDirectory non esistente...${NC}"
+            echo -e "\n${GREEN}Configurazione CoreDumpDirectory non esistente...${NC}"
         fi
 
     if [[ "$risposta" =~ ^[Ss]$ ]]; then
