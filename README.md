@@ -1,6 +1,7 @@
 Punti implementati.
 
 1.1	Ensure the Pre-Installation Planning Checklist Has Been Implemented
+
 1.3	Ensure Apache Is Installed From the Appropriate Binaries
 2.1	Ensure Only Necessary Authentication and Authorization Modules Are Enabled
 2.2	Ensure the Log Config Module Is Enabled
