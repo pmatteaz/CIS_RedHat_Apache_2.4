@@ -53,52 +53,12 @@ echo "Controllo configurazione CoreDumpDirectory..."
 CORE_DUMP_CONFIGURED=$(grep -i "^CoreDumpDirectory" "$APACHE_CONF_FILE" 2>/dev/null)
 
 if [ -z "$CORE_DUMP_CONFIGURED" ]; then
-    echo -e "${RED}✗ CoreDumpDirectory non configurata nel file di configurazione Apache${NC}"
+    echo -e "${GREEN}✓ CoreDumpDirectory non configurata nel file di configurazione Apache${NC}"
     issues_found+=("no_coredump_config")
 else
     CONFIGURED_DIR=$(echo "$CORE_DUMP_CONFIGURED" | awk '{print $2}')
-    echo -e "${GREEN}✓ CoreDumpDirectory configurata: $CONFIGURED_DIR${NC}"
-    
-    # Verifica se la directory configurata corrisponde a quella attesa
-    if [ "$CONFIGURED_DIR" != "$CORE_DUMP_DIR" ]; then
-        echo -e "${YELLOW}! Directory configurata diversa da quella raccomandata${NC}"
-        issues_found+=("wrong_directory")
-    fi
-fi
-
-# Verifica la directory dei core dump
-if [ -d "$CORE_DUMP_DIR" ]; then
-    echo -e "\nControllo permessi directory $CORE_DUMP_DIR..."
-    
-    # Verifica proprietario
-    OWNER=$(stat -c '%U' "$CORE_DUMP_DIR")
-    if [ "$OWNER" != "root" ]; then
-        echo -e "${RED}✗ Proprietario errato: $OWNER (dovrebbe essere root)${NC}"
-        issues_found+=("wrong_owner")
-    else
-        echo -e "${GREEN}✓ Proprietario corretto: root${NC}"
-    fi
-    
-    # Verifica gruppo
-    GROUP=$(stat -c '%G' "$CORE_DUMP_DIR")
-    if [ "$GROUP" != "$APACHE_GROUP" ]; then
-        echo -e "${RED}✗ Gruppo errato: $GROUP (dovrebbe essere $APACHE_GROUP)${NC}"
-        issues_found+=("wrong_group")
-    else
-        echo -e "${GREEN}✓ Gruppo corretto: $APACHE_GROUP${NC}"
-    fi
-    
-    # Verifica permessi
-    PERMS=$(stat -c '%a' "$CORE_DUMP_DIR")
-    if [ "$PERMS" != "750" ]; then
-        echo -e "${RED}✗ Permessi errati: $PERMS (dovrebbero essere 750)${NC}"
-        issues_found+=("wrong_permissions")
-    else
-        echo -e "${GREEN}✓ Permessi corretti: 750${NC}"
-    fi
-else
-    echo -e "${RED}✗ Directory core dump non trovata: $CORE_DUMP_DIR${NC}"
-    issues_found+=("no_directory")
+    echo -e "${RED}✗ CoreDumpDirectory configurata: $CONFIGURED_DIR${NC}"
+   ### disabilita_direttiva CoreDumpDirectory
 fi
 
 # Se ci sono problemi, offri remediation
