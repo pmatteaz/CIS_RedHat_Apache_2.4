@@ -297,17 +297,22 @@ check_installation() {
    #done
 
     # CIS 1.3: Verifica installazione Apache
+    echo "CIS 1.3: Verifica installazione Apache..."
     case $DISTRO in
         debian)
             if ! dpkg -l | grep -q "^ii.*apache2\s"; then
                 echo -e "${RED}Apache non è installato correttamente${NC}"
                 exit 1
+            else
+                echo -e "${GREEN}Apache è installato correttamente${NC}"
             fi
             ;;
         redhat)
             if ! rpm -q httpd >/dev/null; then
                 echo -e "${RED}Apache non è installato correttamente${NC}"
                 exit 1
+            else
+                echo -e "${GREEN}Apache è installato correttamente${NC}"
             fi
             ;;
     esac
