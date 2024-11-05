@@ -5,6 +5,7 @@
 # Funzione di rilevamento distribuzione
 # Imposta variabili globali per paths e comandi specifici per distribuzione
 # ------------------------------
+
 # Colori per output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
