@@ -63,6 +63,8 @@ check_permissions() {
         fi
         
         perms=$(stat -c '%a' "$file")
+        ultima_cifra="${perms: -1}"
+        perms=$ultima_cifra
         if [ $((perms & 2)) -eq 2 ]; then
             echo -e "${RED}✗ Trovato file con permessi di scrittura 'other': $file (${perms})${NC}"
             wrong_permissions+=("$file")
