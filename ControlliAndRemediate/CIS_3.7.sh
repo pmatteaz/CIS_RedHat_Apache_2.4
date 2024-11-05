@@ -46,31 +46,7 @@ fi
 # Array per memorizzare i problemi trovati
 declare -a issues_found=()
 
-print_section "Verifica Configurazione Core Dump"
-
-# Verifica se la direttiva CoreDumpDirectory è configurata
-echo "Controllo configurazione CoreDumpDirectory..."
-CORE_DUMP_CONFIGURED=$(grep -i "^CoreDumpDirectory" "$APACHE_CONF_FILE" 2>/dev/null)
-
-if [ -z "$CORE_DUMP_CONFIGURED" ]; then
-    echo -e "${GREEN}✓ CoreDumpDirectory non configurata nel file di configurazione Apache${NC}"
-    issues_found+=("no_coredump_config")
-else
-    CONFIGURED_DIR=$(echo "$CORE_DUMP_CONFIGURED" | awk '{print $2}')
-    echo -e "${RED}✗ CoreDumpDirectory configurata: $CONFIGURED_DIR${NC}"
-   ### disabilita_direttiva CoreDumpDirectory
-fi
-
-# Se ci sono problemi, offri remediation
-if [ ${#issues_found[@]} -gt 0 ]; then
-    echo -e "\n${YELLOW}Sono stati trovati dei problemi con la configurazione dei core dump.${NC}"
-    echo -e "${YELLOW}Vuoi procedere con la remediation? (s/n)${NC}"
-    read -r risposta
-    
-    if [[ "$risposta" =~ ^[Ss]$ ]]; then
-        print_section "Esecuzione Remediation"
-        
-        # Backup della configurazione
+# Backup della configurazione
         timestamp=$(date +%Y%m%d_%H%M%S)
         backup_dir="/root/apache_coredump_backup_$timestamp"
         mkdir -p "$backup_dir"
@@ -78,54 +54,23 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         echo "Creazione backup della configurazione in $backup_dir..."
         cp "$APACHE_CONF_FILE" "$backup_dir/"
         
-        # Crea o assicura la directory dei core dump
-        if [ ! -d "$CORE_DUMP_DIR" ]; then
-            echo -e "\n${YELLOW}Creazione directory core dump...${NC}"
-            mkdir -p "$CORE_DUMP_DIR"
+print_section "Verifica Configurazione Core Dump e remediatation"
+        
+# Aggiorna la configurazione Apache
+        if grep -q "^CoreDumpDirectory" "$APACHE_CONF_FILE"; then
+            echo -e "\n${YELLOW}Commento la configurazione CoreDumpDirectory...${NC}"
+            sed -i 's/^CoreDumpDirectory/#CoreDumpDirectory/' "$APACHE_CONF_FILE"
             if [ $? -eq 0 ]; then
-                echo -e "${GREEN}✓ Directory creata con successo${NC}"
+                echo -e "${GREEN}✓ Configurazione rimossa con successo${NC}"
             else
-                echo -e "${RED}✗ Errore nella creazione della directory${NC}"
-                exit 1
-            fi
-        fi
-        
-        # Imposta proprietario e gruppo corretti
-        echo -e "\n${YELLOW}Impostazione proprietario e gruppo...${NC}"
-        chown root:"$APACHE_GROUP" "$CORE_DUMP_DIR"
-        if [ $? -eq 0 ]; then
-            echo -e "${GREEN}✓ Proprietario e gruppo impostati correttamente${NC}"
-        else
-            echo -e "${RED}✗ Errore nell'impostazione di proprietario e gruppo${NC}"
-        fi
-        
-        # Imposta i permessi corretti
-        echo -e "\n${YELLOW}Impostazione permessi...${NC}"
-        chmod 750 "$CORE_DUMP_DIR"
-        if [ $? -eq 0 ]; then
-            echo -e "${GREEN}✓ Permessi impostati correttamente${NC}"
-        else
-            echo -e "${RED}✗ Errore nell'impostazione dei permessi${NC}"
-        fi
-        
-        # Aggiorna la configurazione Apache
-        if ! grep -q "^CoreDumpDirectory" "$APACHE_CONF_FILE"; then
-            echo -e "\n${YELLOW}Aggiunta configurazione CoreDumpDirectory...${NC}"
-            echo "CoreDumpDirectory $CORE_DUMP_DIR" >> "$APACHE_CONF_FILE"
-            if [ $? -eq 0 ]; then
-                echo -e "${GREEN}✓ Configurazione aggiunta con successo${NC}"
-            else
-                echo -e "${RED}✗ Errore nell'aggiunta della configurazione${NC}"
+                echo -e "${RED}✗ Errore nella rimozione della configurazione${NC}"
             fi
         else
-            echo -e "\n${YELLOW}Aggiornamento configurazione CoreDumpDirectory esistente...${NC}"
-            sed -i "s|^CoreDumpDirectory.*|CoreDumpDirectory $CORE_DUMP_DIR|" "$APACHE_CONF_FILE"
-            if [ $? -eq 0 ]; then
-                echo -e "${GREEN}✓ Configurazione aggiornata con successo${NC}"
-            else
-                echo -e "${RED}✗ Errore nell'aggiornamento della configurazione${NC}"
-            fi
+            echo -e "\n${GREEN}Aggiornamento configurazione CoreDumpDirectory non esistente...${NC}"
         fi
+        
+    if [[ "$risposta" =~ ^[Ss]$ ]]; then
+        print_section "Remediation eseguita"
         
         # Verifica la configurazione di Apache
         echo -e "\n${YELLOW}Verifica della configurazione di Apache...${NC}"
@@ -155,36 +100,14 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         else
             echo -e "${RED}✗ CoreDumpDirectory non configurata correttamente${NC}"
         fi
-        
-        if [ -d "$CORE_DUMP_DIR" ]; then
-            FINAL_PERMS=$(stat -c '%U:%G %a' "$CORE_DUMP_DIR")
-            echo -e "Permessi finali directory: $FINAL_PERMS"
-            if [ "$(stat -c '%U' "$CORE_DUMP_DIR")" = "root" ] && \
-               [ "$(stat -c '%G' "$CORE_DUMP_DIR")" = "$APACHE_GROUP" ] && \
-               [ "$(stat -c '%a' "$CORE_DUMP_DIR")" = "750" ]; then
-                echo -e "${GREEN}✓ Directory core dump configurata correttamente${NC}"
-            else
-                echo -e "${RED}✗ Directory core dump non configurata correttamente${NC}"
-            fi
-        fi
-        
     else
         echo -e "${YELLOW}Remediation annullata dall'utente${NC}"
     fi
-else
-    echo -e "\n${GREEN}✓ La configurazione dei core dump è corretta${NC}"
-fi
 
 # Riepilogo finale
 print_section "Riepilogo Finale"
-echo "1. Directory core dump: $CORE_DUMP_DIR"
-echo "2. File di configurazione: $APACHE_CONF_FILE"
+echo "1. File di configurazione: $APACHE_CONF_FILE"
 if [ -d "$backup_dir" ]; then
-    echo "3. Backup della configurazione: $backup_dir"
+    echo "2. Backup della configurazione: $backup_dir"
 fi
 
-echo -e "\n${BLUE}Nota: Una corretta configurazione dei core dump garantisce che:${NC}"
-echo -e "${BLUE}- I file di core dump siano salvati in una directory sicura${NC}"
-echo -e "${BLUE}- Solo gli utenti autorizzati possano accedere ai core dump${NC}"
-echo -e "${BLUE}- Il processo Apache possa scrivere i core dump quando necessario${NC}"
-echo -e "${BLUE}- I core dump siano protetti da accessi non autorizzati${NC}"
