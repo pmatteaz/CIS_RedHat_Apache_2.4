@@ -47,7 +47,7 @@ fi
 declare -a issues_found=()
 
 # Backup della configurazione
-        timestamp=$(date +%Y%m%d_%H%M%S)
+        timestamp=$(date +%Y%m%d_%H%M%S)_CIS_3.7
         backup_dir="/root/apache_coredump_backup_$timestamp"
         mkdir -p "$backup_dir"
 
