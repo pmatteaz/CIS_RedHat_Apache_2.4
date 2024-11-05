@@ -52,13 +52,13 @@ ACTIVE_MODULES=$($APACHE_CMD -M 2>/dev/null || apache2ctl -M 2>/dev/null)
 
 if echo "$ACTIVE_MODULES" | grep -q "userdir_module"; then
     echo -e "${RED}✗ Modulo userdir è attualmente attivo${NC}"
-    
+
     # Cerca configurazioni del modulo userdir
     echo -e "\n${YELLOW}Ricerca configurazioni userdir...${NC}"
-    
+
     # Array per memorizzare i file con configurazioni userdir
     declare -a userdir_configs=()
-    
+
     # Cerca nelle directory di configurazione
     while IFS= read -r -d '' file; do
         if grep -l "UserDir\|mod_userdir.c\|mod_userdir.so" "$file" >/dev/null 2>&1; then
@@ -66,7 +66,7 @@ if echo "$ACTIVE_MODULES" | grep -q "userdir_module"; then
             echo -e "${RED}Trovata configurazione userdir in: $file${NC}"
         fi
     done < <(find "$APACHE_CONFIG_DIR" -type f -print0)
-    
+
     # Verifica se ci sono directory public_html negli home degli utenti
     echo -e "\n${YELLOW}Verifica directory public_html degli utenti...${NC}"
     for userdir in /home/*/public_html; do
@@ -74,20 +74,20 @@ if echo "$ACTIVE_MODULES" | grep -q "userdir_module"; then
             echo -e "${RED}Trovata directory public_html in: $userdir${NC}"
         fi
     done
-    
+
     echo -e "\n${YELLOW}Vuoi procedere con la disabilitazione del modulo userdir? (s/n)${NC}"
     read -r risposta
-    
+
     if [[ "$risposta" =~ ^[Ss]$ ]]; then
         print_section "Esecuzione Remediation"
-        
+
         # Backup della configurazione
         timestamp=$(date +%Y%m%d_%H%M%S)_CIS_2.7
         backup_dir="/root/apache_userdir_backup_$timestamp"
         mkdir -p "$backup_dir"
-        
+
         echo "Creazione backup della configurazione in $backup_dir..."
-        
+
         # Backup dei file di configurazione
         if [ "$APACHE_CMD" = "httpd" ]; then
             cp -r "$MODULES_DIR" "$backup_dir/"
@@ -97,22 +97,22 @@ if echo "$ACTIVE_MODULES" | grep -q "userdir_module"; then
             cp -r "$APACHE_CONFIG_DIR/mods-available" "$backup_dir/"
             cp -r "$APACHE_CONFIG_DIR/conf-enabled" "$backup_dir/"
         fi
-        
+
         # Disabilitazione del modulo userdir
         echo -e "\n${YELLOW}Disabilitazione modulo userdir...${NC}"
-        
+
         # Per sistemi Red Hat
         if [ "$APACHE_CMD" = "httpd" ]; then
             # Cerca e commenta il LoadModule per userdir_module
             find "$MODULES_DIR" -type f -name "*.conf" -exec sed -i 's/^LoadModule userdir_module/##LoadModule userdir_module/' {} \;
-            
+
             # Commenta tutte le direttive UserDir
             for config in "${userdir_configs[@]}"; do
                 sed -i 's/^[[:space:]]*UserDir/##UserDir/' "$config"
                 sed -i 's/^[[:space:]]*<Directory.*public_html>/##&/' "$config"
                 sed -i 's/^[[:space:]]*<\/Directory>/##&/' "$config"
             done
-            
+
         # Per sistemi Debian
         else
             if ! a2dismod userdir; then
@@ -120,24 +120,24 @@ if echo "$ACTIVE_MODULES" | grep -q "userdir_module"; then
                 exit 1
             fi
         fi
-        
+
         # Verifica della configurazione di Apache
         echo -e "\n${YELLOW}Verifica della configurazione di Apache...${NC}"
         if $APACHE_CMD -t 2>/dev/null || apache2ctl -t 2>/dev/null; then
             echo -e "${GREEN}✓ Configurazione di Apache valida${NC}"
-            
+
             # Riavvio di Apache
             echo -e "\n${YELLOW}Riavvio di Apache...${NC}"
             if systemctl restart $APACHE_CMD 2>/dev/null || systemctl restart apache2 2>/dev/null; then
                 echo -e "${GREEN}✓ Apache riavviato con successo${NC}"
-                
+
                 # Verifica finale
                 print_section "Verifica Finale"
                 FINAL_MODULES=$($APACHE_CMD -M 2>/dev/null || apache2ctl -M 2>/dev/null)
-                
+
                 if ! echo "$FINAL_MODULES" | grep -q "userdir_module"; then
                     echo -e "${GREEN}✓ Modulo userdir disabilitato con successo${NC}"
-                    
+
                     # Verifica accesso alle directory degli utenti
                     if command_exists curl; then
                         echo -e "\n${YELLOW}Verifica accesso alle directory degli utenti...${NC}"
@@ -151,14 +151,14 @@ if echo "$ACTIVE_MODULES" | grep -q "userdir_module"; then
                 else
                     echo -e "${RED}✗ Modulo userdir è ancora attivo${NC}"
                 fi
-                
+
             else
                 echo -e "${RED}✗ Errore durante il riavvio di Apache${NC}"
             fi
         else
             echo -e "${RED}✗ Errore nella configurazione di Apache${NC}"
             echo -e "${YELLOW}Ripristino del backup...${NC}"
-            
+
             if [ "$APACHE_CMD" = "httpd" ]; then
                 cp -r "$backup_dir/conf.modules.d/"* "$MODULES_DIR/"
                 cp -r "$backup_dir/conf/"* "$CONF_DIR/"
@@ -167,11 +167,11 @@ if echo "$ACTIVE_MODULES" | grep -q "userdir_module"; then
                 cp -r "$backup_dir/mods-available/"* "$APACHE_CONFIG_DIR/mods-available/"
                 cp -r "$backup_dir/conf-enabled/"* "$APACHE_CONFIG_DIR/conf-enabled/"
             fi
-            
+
             systemctl restart $APACHE_CMD 2>/dev/null || systemctl restart apache2 2>/dev/null
             echo -e "${GREEN}Backup ripristinato${NC}"
         fi
-        
+
     else
         echo -e "${YELLOW}Remediation annullata dall'utente${NC}"
     fi
@@ -186,7 +186,3 @@ echo "2. Controlla i file di configurazione in: $APACHE_CONFIG_DIR"
 if [ -d "$backup_dir" ]; then
     echo "3. Backup della configurazione disponibile in: $backup_dir"
 fi
-
-echo -e "\n${BLUE}Nota: La disabilitazione del modulo userdir migliora la sicurezza impedendo${NC}"
-echo -e "${BLUE}l'accesso alle directory personali degli utenti attraverso il web server${NC}"
-echo -e "${BLUE}Considera l'utilizzo di alternative più sicure per l'hosting di contenuti personali${NC}"
