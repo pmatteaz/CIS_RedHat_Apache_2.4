@@ -5,6 +5,18 @@
 # Funzione di rilevamento distribuzione
 # Imposta variabili globali per paths e comandi specifici per distribuzione
 # ------------------------------
+# Colori per output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Funzione per stampare intestazioni delle sezioni
+print_section() {
+    echo -e "\n${BLUE}=== $1 ===${NC}"
+}
+
 detect_distro() {
     # Inizializzazione variabili per rilevamento OS
     if [ -f /etc/debian_version ]; then
@@ -275,7 +287,7 @@ check_dependencies() {
 # ------------------------------
 check_installation() {
 
-   echo "Implementando CIS 1 "
+   print_section "Implementando CIS 1 "
    ## CIS 1.2: Verifica che il server non sia multi-uso
    #local critical_services=("mysql" "postgresql" "named" "dhcpd" "dovecot" "samba")
    #for service in "${critical_services[@]}"; do
@@ -308,7 +320,7 @@ check_installation() {
 # 2.3-2.9 - Disable unnecessary modules
 # ------------------------------
 manage_modules() {
-    echo "Implementando CIS 2 - Gestione Moduli..."
+    print_section "Implementando CIS 2 - Gestione Moduli..."
 
     # CIS 2.2: Assicurarsi che log_config sia abilitato
     case $DISTRO in
@@ -343,7 +355,7 @@ manage_modules() {
 # 3.4-3.13 - File and Directory Permissions
 # ------------------------------
 secure_permissions() {
-    echo "Implementando CIS 3 - Permessi e Proprietà..."
+    print_section "Implementando CIS 3 - Permessi e Proprietà..."
 
     # CIS 3.1-3.3: Configurazione utente Apache
     # CIS 3.2
@@ -538,7 +550,7 @@ secure_permissions() {
 # 4.3-4.4 - Ensure Override Is Disabled
 # ------------------------------
 configure_access_control() {
-    echo "CIS 4: Apache Access Control "
+    print_section "CIS 4: Apache Access Control "
     local access_conf
     case $DISTRO in
         debian)
@@ -576,7 +588,7 @@ EOL
 # 5.1-5.18 - Options and Content Restrictions
 # ------------------------------
 configure_security_options() {
-    echo "CIS 5: Minimize Features, Content and Options"
+    print_section "CIS 5: Minimize Features, Content and Options"
     local security_conf
     case $DISTRO in
         debian)
@@ -645,7 +657,7 @@ sed -i 's/Listen 80/Listen 192.168.1.1:80/' $apache_conf
 # 6.1-6.7 - Logging Configuration
 # ------------------------------
 configure_logging() {
-    echo " CIS 6: Logging, Monitoring and Maintenance "
+    print_section "CIS 6: Logging, Monitoring and Maintenance "
     local logging_conf
     case $DISTRO in
         debian)
@@ -707,7 +719,7 @@ EOL
 # 7.1-7.12 - SSL/TLS Settings
 # ------------------------------
 configure_ssl() {
-    echo " CIS 7: SSL/TLS Configuration "
+    print_section "CIS 7: SSL/TLS Configuration "
     local ssl_conf
     case $DISTRO in
         debian)
@@ -758,7 +770,7 @@ EOL
 # 8.1-8.4 - Prevent Information Leakage
 # ------------------------------
 prevent_info_leakage() {
-    echo "CIS 8: Information Leakage"
+    print_section "CIS 8: Information Leakage"
     local info_conf
     case $DISTRO in
         debian)
@@ -805,7 +817,7 @@ EOL
 # 10.1-10.4 - Request Limits
 # ------------------------------
 configure_request_limits() {
-    echo "CIS 9 & 10: DoS Mitigations e Request Limits"
+    print_section "CIS 9 & 10: DoS Mitigations e Request Limits"
     local limits_conf
     case $DISTRO in
         debian)
