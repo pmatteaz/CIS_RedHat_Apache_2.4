@@ -21,8 +21,7 @@ find_directive_in_section() {
     if [ ! -f "$config_file" ]; then
         echo "Errore: File $config_file non trovato" >&2
         return 1
-    }
-
+    fi
     # Legge il file riga per riga
     while IFS= read -r line || [ -n "$line" ]; do
         # Rimuove spazi iniziali e finali
@@ -32,7 +31,7 @@ find_directive_in_section() {
         [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
 
         # Controlla inizio sezione
-        if [[ "$line" =~ ^<[^/] ]]; then
+        if [[ "$line" =~ (^<[^/]) ]]; then
             # Se è la sezione che cerchiamo
             if [[ "$line" == "$section_name"* ]]; then
                 in_section=1
@@ -41,7 +40,7 @@ find_directive_in_section() {
         fi
 
         # Controlla fine sezione
-        if [[ "$line" =~ ^</[^>]+> ]]; then
+        if [[ "$line" =~ (^</[^>]+>) ]]; then
             ((section_depth--))
             if [ $section_depth -lt 0 ]; then
                 section_depth=0
