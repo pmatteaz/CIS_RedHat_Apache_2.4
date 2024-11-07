@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 # Colori per output
