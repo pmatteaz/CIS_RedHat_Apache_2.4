@@ -71,12 +71,12 @@ get_document_root() {
 # Funzione per verificare la configurazione del PidFile
 check_pidfile() {
     echo "Controllo configurazione PidFile..."
-    
+
     # 1. Trova la directory del PidFile
     local server_root=$(get_server_root)
-    local pidfile_path=$(grep "^PidFile" "$APACHE_CONF" | awk '{print $2}' | tr -d '"')
+    local pidfile_path="$server_root/`httpd -V | grep DEFAULT_PIDLOG | cut -d"=" -f2 |tr -d '"'`"
     local document_root=$(get_document_root)
-    
+
     if [ -z "$pidfile_path" ]; then
         # Se PidFile non è specificato, usa il valore predefinito
         pidfile_path="$server_root/logs/httpd.pid"
@@ -84,10 +84,15 @@ check_pidfile() {
     else
         echo -e "${BLUE}PidFile configurato: ${NC}$pidfile_path"
     fi
-    
+
     # Ottieni la directory del PidFile
     local pidfile_dir=$(dirname "$pidfile_path")
-    
+
+    # Verifica che pidfile_dir non sia un link in caso ottieni la vera directory
+    if [ -L $pidfile_dir ];then
+      local pidfile_dir=$(readlink -f $pidfile_dir)
+    fi
+
     # 2. Verifica che la directory del PidFile non sia dentro DocumentRoot
     if [[ "$pidfile_dir" == "$document_root"* ]]; then
         echo -e "${RED}✗ Directory PidFile è all'interno del DocumentRoot${NC}"
@@ -95,25 +100,25 @@ check_pidfile() {
     else
         echo -e "${GREEN}✓ Directory PidFile non è nel DocumentRoot${NC}"
     fi
-    
+
     # 3. Verifica proprietario e gruppo della directory
     if [ -d "$pidfile_dir" ]; then
         local dir_owner=$(stat -c "%U" "$pidfile_dir")
         local dir_group=$(stat -c "%G" "$pidfile_dir")
-        
+
         echo -e "${BLUE}Proprietario directory: ${NC}$dir_owner:$dir_group"
-        
+
         if [ "$dir_owner" != "root" ] || [ "$dir_group" != "root" ]; then
             echo -e "${RED}✗ Directory non appartiene a root:root${NC}"
             issues_found+=("wrong_ownership")
         else
             echo -e "${GREEN}✓ Directory appartiene a root:root${NC}"
         fi
-        
+
         # 4. Verifica permessi della directory
         local dir_perms=$(stat -c "%a" "$pidfile_dir")
         echo -e "${BLUE}Permessi directory: ${NC}$dir_perms"
-        
+
         if [ "$dir_perms" -gt "755" ]; then
             echo -e "${RED}✗ Permessi directory troppo permissivi${NC}"
             issues_found+=("wrong_permissions")
@@ -124,7 +129,7 @@ check_pidfile() {
         echo -e "${RED}✗ Directory PidFile non esiste${NC}"
         issues_found+=("no_pidfile_dir")
     fi
-    
+
     if [ ${#issues_found[@]} -eq 0 ]; then
         return 0
     fi
@@ -139,52 +144,52 @@ if [ ${#issues_found[@]} -gt 0 ]; then
     echo -e "\n${YELLOW}Problemi rilevati nella configurazione del PidFile.${NC}"
     echo -e "${YELLOW}Vuoi procedere con la remediation? (s/n)${NC}"
     read -r risposta
-    
+
     if [[ "$risposta" =~ ^[Ss]$ ]]; then
         print_section "Esecuzione Remediation"
-        
+
         # Backup delle configurazioni
-        timestamp=$(date +%Y%m%d_%H%M%S)
+        timestamp=$(date +%Y%m%d_%H%M%S)_CIS_3.9
         backup_dir="/root/pidfile_backup_$timestamp"
         mkdir -p "$backup_dir"
-        
+
         echo "Creazione backup in $backup_dir..."
         cp "$APACHE_CONF" "$backup_dir/"
-        
+
         # Determina il percorso sicuro per il PidFile
         SAFE_PIDFILE_DIR="/var/run/apache2"
         if [ "$SYSTEM_TYPE" = "redhat" ]; then
             SAFE_PIDFILE_DIR="/var/run/httpd"
         fi
-        
+
         # Crea directory se non esiste
         if [ ! -d "$SAFE_PIDFILE_DIR" ]; then
             mkdir -p "$SAFE_PIDFILE_DIR"
         fi
-        
+
         # Imposta proprietario e permessi corretti
         chown root:root "$SAFE_PIDFILE_DIR"
         chmod 755 "$SAFE_PIDFILE_DIR"
-        
+
         # Aggiorna la configurazione del PidFile
         if grep -q "^PidFile" "$APACHE_CONF"; then
             sed -i "s|^PidFile.*|PidFile $SAFE_PIDFILE_DIR/apache2.pid|" "$APACHE_CONF"
         else
             echo "PidFile $SAFE_PIDFILE_DIR/apache2.pid" >> "$APACHE_CONF"
         fi
-        
+
         # Verifica la configurazione di Apache
         echo -e "\n${YELLOW}Verifica configurazione Apache...${NC}"
         if $APACHE_CMD -t; then
             echo -e "${GREEN}✓ Configurazione Apache valida${NC}"
-            
+
             # Riavvia Apache
             echo -e "\n${YELLOW}Riavvio Apache...${NC}"
             systemctl restart $APACHE_CMD
-            
+
             if [ $? -eq 0 ]; then
                 echo -e "${GREEN}✓ Apache riavviato con successo${NC}"
-                
+
                 # Verifica finale
                 print_section "Verifica Finale"
                 if check_pidfile; then
