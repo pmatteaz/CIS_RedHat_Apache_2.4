@@ -27,14 +27,14 @@ fi
 
 # Determina il tipo di sistema e i percorsi
 if [ -f /etc/redhat-release ]; then
-    APACHE_USER="apache"
-    APACHE_GROUP="apache"
+    APACHE_USER="root"
+    APACHE_GROUP="root"
     APACHE_RUN_DIR="/var/run/httpd"
     PID_FILE="$APACHE_RUN_DIR/httpd.pid"
     APACHE_CONF="/etc/httpd/conf/httpd.conf"
 elif [ -f /etc/debian_version ]; then
-    APACHE_USER="www-data"
-    APACHE_GROUP="www-data"
+    APACHE_USER="root"
+    APACHE_GROUP="root"
     APACHE_RUN_DIR="/var/run/apache2"
     PID_FILE="$APACHE_RUN_DIR/apache2.pid"
     APACHE_CONF="/etc/apache2/apache2.conf"
