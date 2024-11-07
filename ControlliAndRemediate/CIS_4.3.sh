@@ -1,3 +1,4 @@
+
 #!/bin/bash
 
 # Colori per output
@@ -15,6 +16,74 @@ print_section() {
 # Funzione per verificare se un comando esiste
 command_exists() {
     command -v "$1" >/dev/null 2>&1
+}
+
+# Funzione per cercare una direttiva in una sezione specifica
+# Parametri:
+# $1 = file di configurazione
+# $2 = nome della sezione (es. "<VirtualHost *:80>")
+# $3 = direttiva da cercare (es. "DocumentRoot")
+# Return:
+# 0 se trovata, 1 se non trovata
+# Output:
+# Stampa il valore della direttiva se trovata
+
+find_directive_in_section() {
+    local config_file="$1"
+    local section_name="$2"
+    local directive="$3"
+    local in_section=0
+    local section_depth=0
+    local result=""
+
+    # Verifica che il file esista
+    if [ ! -f "$config_file" ]; then
+        echo "Errore: File $config_file non trovato" >&2
+        return 1
+    fi
+    # Legge il file riga per riga
+    while IFS= read -r line || [ -n "$line" ]; do
+        # Rimuove spazi iniziali e finali
+        line=$(echo "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+
+        # Salta linee vuote e commenti
+        [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+
+        # Controlla inizio sezione
+        if [[ "$line" =~ (^<[^/]) ]]; then
+            # Se è la sezione che cerchiamo
+            if [[ "$line" == "$section_name"* ]]; then
+                in_section=1
+            fi
+            ((section_depth++))
+        fi
+
+        # Controlla fine sezione
+        if [[ "$line" =~ (^</[^>]+>) ]]; then
+            ((section_depth--))
+            if [ $section_depth -lt 0 ]; then
+                section_depth=0
+            fi
+            # Se usciamo dalla sezione che ci interessa
+            if [ $in_section -eq 1 ] && [ $section_depth -eq 0 ]; then
+                in_section=0
+            fi
+        fi
+
+        # Se siamo nella sezione corretta, cerca la direttiva
+        if [ $in_section -eq 1 ]; then
+            # Controlla se la riga inizia con la direttiva
+            if [[ "$line" =~ ^${directive}[[:space:]] ]]; then
+                # Estrae il valore della direttiva
+                result=$(echo "$line" | sed "s/^${directive}[[:space:]]*//")
+                echo "$result"
+                return 0
+            fi
+        fi
+    done < "$config_file"
+
+    # Se non trova nulla
+    return 1
 }
 
 print_section "Verifica CIS 4.3: AllowOverride Disabilitato per Directory Root del Sistema"
@@ -48,37 +117,37 @@ check_root_override() {
     local found_root=false
     local correct_config=true
     local root_section=""
-    
+
     echo "Controllo configurazione AllowOverride in $config_file..."
-    
+
     # Cerca la sezione Directory root
     while IFS= read -r line || [[ -n "$line" ]]; do
         # Rimuovi spazi iniziali e finali
         line=$(echo "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
-        
+
         if [[ "$line" =~ ^"<Directory /"[[:space:]]*">"$ ]]; then
             found_root=true
             root_section="$line"$'\n'
-            
+
             # Leggi la sezione fino alla chiusura
             while IFS= read -r section_line || [[ -n "$section_line" ]]; do
                 section_line=$(echo "$section_line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
                 root_section+="$section_line"$'\n'
-                
+
                 if [[ "$section_line" == "</Directory>" ]]; then
                     break
                 fi
             done
-            
+
             # Verifica AllowOverride None
             if ! echo "$root_section" | grep -q "^[[:space:]]*AllowOverride[[:space:]]*None[[:space:]]*$"; then
                 correct_config=false
             fi
-            
+
             break
         fi
     done < "$config_file"
-    
+
     if ! $found_root; then
         echo -e "${RED}✗ Sezione <Directory /> non trovata${NC}"
         issues_found+=("no_root_section")
@@ -101,24 +170,25 @@ if [ ${#issues_found[@]} -gt 0 ]; then
     echo -e "\n${YELLOW}Sono stati trovati problemi con la configurazione AllowOverride.${NC}"
     echo -e "${YELLOW}Vuoi procedere con la remediation? (s/n)${NC}"
     read -r risposta
-    
+
     if [[ "$risposta" =~ ^[Ss]$ ]]; then
         print_section "Esecuzione Remediation"
-        
+
         # Backup del file di configurazione
         timestamp=$(date +%Y%m%d_%H%M%S)
         backup_dir="/root/apache_override_backup_$timestamp"
         mkdir -p "$backup_dir"
-        
+
         echo "Creazione backup in $backup_dir..."
         cp -p "$MAIN_CONFIG" "$backup_dir/"
-        
+
         # Prepara la configurazione corretta
+
         if grep -q "^<Directory />" "$MAIN_CONFIG"; then
             echo -e "\n${YELLOW}Aggiornamento configurazione esistente...${NC}"
-            
+
             # Usa sed per modificare o aggiungere AllowOverride None
-            if grep -q "AllowOverride" "$MAIN_CONFIG"; then
+            if find_directive_in_section "$MAIN_CONFIG" "<Directory />" "AllowOverride" ; then
                 # Modifica la direttiva esistente
                 sed -i '/<Directory \/>/,/<\/Directory>/ s/AllowOverride.*/AllowOverride None/' "$MAIN_CONFIG"
             else
@@ -130,25 +200,25 @@ if [ ${#issues_found[@]} -gt 0 ]; then
             # Aggiungi la sezione completa
             echo -e "\n<Directory />\n    AllowOverride None\n    Require all denied\n</Directory>" >> "$MAIN_CONFIG"
         fi
-        
+
         # Verifica la configurazione di Apache
         echo -e "\n${YELLOW}Verifica della configurazione di Apache...${NC}"
         if httpd -t 2>/dev/null || apache2ctl -t 2>/dev/null; then
             echo -e "${GREEN}✓ Configurazione di Apache valida${NC}"
-            
+
             # Riavvio di Apache
             echo -e "\n${YELLOW}Riavvio di Apache...${NC}"
             if systemctl restart httpd 2>/dev/null || systemctl restart apache2 2>/dev/null; then
                 echo -e "${GREEN}✓ Apache riavviato con successo${NC}"
-                
+
                 # Verifica finale
                 print_section "Verifica Finale"
                 if check_root_override "$MAIN_CONFIG"; then
                     echo -e "\n${GREEN}✓ Remediation completata con successo${NC}"
-                    
+
                     # Test pratico
                     echo -e "\n${YELLOW}Esecuzione test di configurazione...${NC}"
-                    
+
                     # Crea un .htaccess di test nella root
                     test_htaccess="/.htaccess"
                     if [ -w "/" ]; then
@@ -179,7 +249,7 @@ if [ ${#issues_found[@]} -gt 0 ]; then
             systemctl restart httpd 2>/dev/null || systemctl restart apache2 2>/dev/null
             echo -e "${GREEN}Backup ripristinato${NC}"
         fi
-        
+
     else
         echo -e "${YELLOW}Remediation annullata dall'utente${NC}"
     fi
