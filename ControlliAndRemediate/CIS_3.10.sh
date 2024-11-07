@@ -54,12 +54,12 @@ if [ ! -d "$APACHE_RUN_DIR" ]; then
     issues_found+=("no_run_dir")
 else
     echo -e "${GREEN}✓ Directory $APACHE_RUN_DIR presente${NC}"
-    
+
     # Verifica permessi directory
     DIR_PERMS=$(stat -c '%a' "$APACHE_RUN_DIR")
     DIR_OWNER=$(stat -c '%U' "$APACHE_RUN_DIR")
     DIR_GROUP=$(stat -c '%G' "$APACHE_RUN_DIR")
-    
+
     if [ "$DIR_PERMS" != "755" ] || [ "$DIR_OWNER" != "root" ] || [ "$DIR_GROUP" != "root" ]; then
         echo -e "${RED}✗ Permessi o proprietà directory errati:${NC}"
         echo "Permessi attuali: $DIR_PERMS (dovrebbero essere 755)"
@@ -74,17 +74,16 @@ fi
 # Cerca file ScoreBoard esistenti
 echo -e "\nRicerca file ScoreBoard..."
 FOUND_SCOREBOARDS=$(find "$APACHE_RUN_DIR" -name "apache_runtime_status*" 2>/dev/null)
-
 if [ -n "$FOUND_SCOREBOARDS" ]; then
     echo -e "${YELLOW}Trovati file ScoreBoard esistenti:${NC}"
     while IFS= read -r file; do
         echo "$file"
-        
+
         # Verifica proprietà e permessi per ogni file trovato
         FILE_OWNER=$(stat -c '%U' "$file")
         FILE_GROUP=$(stat -c '%G' "$file")
         FILE_PERMS=$(stat -c '%a' "$file")
-        
+
         if [ "$FILE_OWNER" != "root" ] || \
            [ "$FILE_GROUP" != "$APACHE_GROUP" ] || \
            [ "$FILE_PERMS" != "640" ]; then
@@ -101,32 +100,32 @@ if [ ${#issues_found[@]} -gt 0 ]; then
     echo -e "\n${YELLOW}Sono stati trovati dei problemi con il file ScoreBoard.${NC}"
     echo -e "${YELLOW}Vuoi procedere con la remediation? (s/n)${NC}"
     read -r risposta
-    
+
     if [[ "$risposta" =~ ^[Ss]$ ]]; then
         print_section "Esecuzione Remediation"
-        
+
         # Backup delle configurazioni
         timestamp=$(date +%Y%m%d_%H%M%S)_CIS_3.10
         backup_dir="/root/apache_scoreboard_backup_$timestamp"
         mkdir -p "$backup_dir"
-        
+
         echo "Creazione backup in $backup_dir..."
         if [ -d "$APACHE_RUN_DIR" ]; then
             cp -r "$APACHE_RUN_DIR" "$backup_dir/"
         fi
-        
+
         # Crea/correggi directory di run
         echo -e "\n${YELLOW}Configurazione directory di run...${NC}"
         if [ ! -d "$APACHE_RUN_DIR" ]; then
             mkdir -p "$APACHE_RUN_DIR"
             echo -e "${GREEN}✓ Directory creata${NC}"
         fi
-        
+
         # Imposta permessi directory
         chown root:root "$APACHE_RUN_DIR"
         chmod 755 "$APACHE_RUN_DIR"
         echo -e "${GREEN}✓ Permessi directory impostati${NC}"
-        
+
         # Rimuovi vecchi file ScoreBoard se esistono
         if [ -n "$FOUND_SCOREBOARDS" ]; then
             echo -e "\n${YELLOW}Rimozione vecchi file ScoreBoard...${NC}"
@@ -135,39 +134,39 @@ if [ ${#issues_found[@]} -gt 0 ]; then
                 echo "Rimosso: $file"
             done <<< "$FOUND_SCOREBOARDS"
         fi
-        
+
         # Crea nuovo file ScoreBoard
         echo -e "\n${YELLOW}Creazione nuovo file ScoreBoard...${NC}"
         touch "$SCOREBOARD_FILE"
         chown root:"$APACHE_GROUP" "$SCOREBOARD_FILE"
         chmod 640 "$SCOREBOARD_FILE"
-        
+
         # Verifica la configurazione di Apache
         echo -e "\n${YELLOW}Verifica della configurazione di Apache...${NC}"
         if httpd -t 2>/dev/null || apache2ctl -t 2>/dev/null; then
             echo -e "${GREEN}✓ Configurazione di Apache valida${NC}"
-            
+
             # Riavvio di Apache
             echo -e "\n${YELLOW}Riavvio di Apache...${NC}"
             if systemctl restart httpd 2>/dev/null || systemctl restart apache2 2>/dev/null; then
                 echo -e "${GREEN}✓ Apache riavviato con successo${NC}"
-                
+
                 # Attendi un momento per permettere ad Apache di ricreare il file
                 sleep 2
-                
+
                 # Verifica finale
                 print_section "Verifica Finale"
-                
+
                 # Controlla nuovamente i file ScoreBoard
                 NEW_SCOREBOARDS=$(find "$APACHE_RUN_DIR" -name "apache_runtime_status*" 2>/dev/null)
-                
+
                 if [ -n "$NEW_SCOREBOARDS" ]; then
                     ERRORS=0
                     while IFS= read -r file; do
                         FILE_OWNER=$(stat -c '%U' "$file")
                         FILE_GROUP=$(stat -c '%G' "$file")
                         FILE_PERMS=$(stat -c '%a' "$file")
-                        
+
                         if [ "$FILE_OWNER" = "root" ] && \
                            [ "$FILE_GROUP" = "$APACHE_GROUP" ] && \
                            [ "$FILE_PERMS" = "640" ]; then
@@ -180,7 +179,7 @@ if [ ${#issues_found[@]} -gt 0 ]; then
                             ((ERRORS++))
                         fi
                     done <<< "$NEW_SCOREBOARDS"
-                    
+
                     if [ $ERRORS -eq 0 ]; then
                         echo -e "\n${GREEN}✓ Tutti i file ScoreBoard sono configurati correttamente${NC}"
                     else
@@ -198,7 +197,7 @@ if [ ${#issues_found[@]} -gt 0 ]; then
             cp -r "$backup_dir/"* "$APACHE_RUN_DIR/"
             echo -e "${GREEN}Backup ripristinato${NC}"
         fi
-        
+
     else
         echo -e "${YELLOW}Remediation annullata dall'utente${NC}"
     fi
@@ -213,9 +212,3 @@ echo "2. File ScoreBoard predefinito: $SCOREBOARD_FILE"
 if [ -d "$backup_dir" ]; then
     echo "3. Backup salvato in: $backup_dir"
 fi
-
-echo -e "\n${BLUE}Nota: Un file ScoreBoard correttamente configurato garantisce che:${NC}"
-echo -e "${BLUE}- Solo root possa gestire il file ScoreBoard${NC}"
-echo -e "${BLUE}- Il processo Apache possa accedere al file quando necessario${NC}"
-echo -e "${BLUE}- Il file sia protetto da accessi non autorizzati${NC}"
-echo -e "${BLUE}- Il monitoraggio dello stato di Apache funzioni correttamente${NC}"
