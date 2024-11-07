@@ -126,3 +126,8 @@ Punti implementati.
 
 10.4	Ensure the LimitRequestBody Directive is Set to 102400 or Less
 
+# Per fare il backup:
+./permissions.sh -b /path/to/directory [output_file]
+
+# Per ripristinare:
+./permissions.sh -r /path/to/directory backup_file
