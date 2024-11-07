@@ -58,8 +58,8 @@ check_group_write() {
         fi
         
         # Verifica se il file ha permessi di scrittura per il gruppo
-        perms=$(stat -c '%a' "$file")
-        if [ $((perms & 020)) -eq 020 ]; then
+        perms=$(stat -c '%A' "$file")
+        if [[ ${perms:5:1} == "w" ]]; thenn
             echo -e "${RED}✗ Trovato file con permessi di scrittura del gruppo: $file (${perms})${NC}"
             wrong_permissions+=("$file")
         fi
@@ -71,8 +71,10 @@ check_group_write() {
             continue  # Salta i link simbolici
         fi
         
-        perms=$(stat -c '%a' "$dir")
-        if [ $((perms & 020)) -eq 020 ]; then
+        perms=$(stat -c '%A' "$dir")
+        if [[ ${perms:5:1} == "w" ]]; then
+           echo "Directory ha permessi di scrittura per il gruppo"
+        fi
             echo -e "${RED}✗ Trovata directory con permessi di scrittura del gruppo: $dir (${perms})${NC}"
             wrong_permissions+=("$dir")
         fi
