@@ -79,7 +79,7 @@ check_pidfile() {
 
     if [ -z "$pidfile_path" ]; then
         # Se PidFile non è specificato, usa il valore predefinito
-        pidfile_path="$server_root/logs/httpd.pid"
+        local pidfile_path="$server_root/logs/httpd.pid"
         echo -e "${YELLOW}! PidFile non specificato, verrà utilizzato il percorso predefinito: $pidfile_path${NC}"
     else
         echo -e "${BLUE}PidFile configurato: ${NC}$pidfile_path"
