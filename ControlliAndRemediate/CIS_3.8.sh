@@ -17,7 +17,7 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-print_section "Verifica CIS 3.8: Sicurezza del File di Lock"
+print_section "Verifica CIS 3.8: Ensure Lock File is Secured"
 
 # Verifica se Apache è installato
 if ! command_exists httpd && ! command_exists apache2; then
@@ -29,13 +29,15 @@ fi
 if [ -f /etc/redhat-release ]; then
     APACHE_USER="apache"
     APACHE_GROUP="apache"
-    APACHE_RUN_DIR="/var/run/httpd"
-    LOCK_FILE="$APACHE_RUN_DIR/httpd.lock"
+    APACHE_CONFIG_DIR="/etc/httpd"
+    APACHE_CONF_FILE="$APACHE_CONFIG_DIR/conf/httpd.conf"
+
 elif [ -f /etc/debian_version ]; then
     APACHE_USER="www-data"
     APACHE_GROUP="www-data"
-    APACHE_RUN_DIR="/var/run/apache2"
-    LOCK_FILE="$APACHE_RUN_DIR/apache2.lock"
+    APACHE_CONFIG_DIR="/etc/apache2"
+    APACHE_CONF_FILE="$APACHE_CONFIG_DIR/apache2.conf"
+
 else
     echo -e "${RED}Sistema operativo non supportato${NC}"
     exit 1
@@ -44,158 +46,126 @@ fi
 # Array per memorizzare i problemi trovati
 declare -a issues_found=()
 
-print_section "Verifica File di Lock"
+# Backup della configurazione
+        timestamp=$(date +%Y%m%d_%H%M%S)_CIS_3.8
+        backup_dir="/root/apache_coredump_backup_$timestamp"
+        mkdir -p "$backup_dir"
 
-# Verifica directory di run
-if [ ! -d "$APACHE_RUN_DIR" ]; then
-    echo -e "${RED}✗ Directory $APACHE_RUN_DIR non trovata${NC}"
-    issues_found+=("no_run_dir")
-else
-    echo -e "${GREEN}✓ Directory $APACHE_RUN_DIR presente${NC}"
-    
-    # Verifica permessi directory
-    DIR_PERMS=$(stat -c '%a' "$APACHE_RUN_DIR")
-    if [ "$DIR_PERMS" != "755" ]; then
-        echo -e "${RED}✗ Permessi directory errati: $DIR_PERMS (dovrebbero essere 755)${NC}"
-        issues_found+=("wrong_dir_perms")
-    else
-        echo -e "${GREEN}✓ Permessi directory corretti: 755${NC}"
-    fi
-fi
+        echo "Creazione backup della configurazione in $backup_dir..."
+        cp "$APACHE_CONF_FILE" "$backup_dir/"
 
-# Verifica file di lock
-echo -e "\nControllo file di lock $LOCK_FILE..."
+print_section "Verifica Configurazione Lock file"
 
-if [ -f "$LOCK_FILE" ]; then
-    # Verifica proprietario
-    OWNER=$(stat -c '%U' "$LOCK_FILE")
-    if [ "$OWNER" != "root" ]; then
-        echo -e "${RED}✗ Proprietario errato: $OWNER (dovrebbe essere root)${NC}"
-        issues_found+=("wrong_owner")
-    else
-        echo -e "${GREEN}✓ Proprietario corretto: root${NC}"
-    fi
-    
-    # Verifica gruppo
-    GROUP=$(stat -c '%G' "$LOCK_FILE")
-    if [ "$GROUP" != "$APACHE_GROUP" ]; then
-        echo -e "${RED}✗ Gruppo errato: $GROUP (dovrebbe essere $APACHE_GROUP)${NC}"
-        issues_found+=("wrong_group")
-    else
-        echo -e "${GREEN}✓ Gruppo corretto: $APACHE_GROUP${NC}"
-    fi
-    
-    # Verifica permessi
-    PERMS=$(stat -c '%a' "$LOCK_FILE")
-    if [ "$PERMS" != "640" ]; then
-        echo -e "${RED}✗ Permessi errati: $PERMS (dovrebbero essere 640)${NC}"
-        issues_found+=("wrong_perms")
-    else
-        echo -e "${GREEN}✓ Permessi corretti: 640${NC}"
-    fi
-else
-    echo -e "${RED}✗ File di lock non trovato${NC}"
-    issues_found+=("no_lock_file")
-fi
+# Verifica la configurazione di Apache
+        for direttiva in "^Mutex fcntl" "^Mutex flock" "^Mutex file" ; do
+                if grep -q "$direttiva" "$APACHE_CONF_FILE"; then
+                echo -e "\n${YELLOW}La configurazione Mutex prevede un lock file...${NC}"
+                file=$( grep "$direttiva" "$APACHE_CONF_FILE" | cut -d":" -f2 | cut -d" " -f1)
+                # Controlla i permessi del file
+                echo -e "\n${YELLOW}Controlla permessi lock file...${NC}"
+                perms=$(stat -c '%A' "$file")
+                prime_cifre="${perms: -5}"
+                if [[ "`echo $prime_cifre |grep w`" =~ 'w' ]] ; then
+                    echo -e "${RED}✗ Trovato file con permessi di scrittura errati: $file (${perms})${NC}"
+                    wrong_permissions+=("$file")
+                fi
+            else
+                echo -e "\n${GREEN}Configurazione Mutex fcntl non definita...${NC}"
+            fi
+        done
 
 # Se ci sono problemi, offri remediation
-if [ ${#issues_found[@]} -gt 0 ]; then
-    echo -e "\n${YELLOW}Sono stati trovati dei problemi con il file di lock.${NC}"
+if [ ${#wrong_permissions[@]} -gt 0 ]; then
+    echo -e "\n${YELLOW}Trovato ${#wrong_permissions[@]} file con permessi di scrittura non sicuri.${NC}"
     echo -e "${YELLOW}Vuoi procedere con la remediation? (s/n)${NC}"
     read -r risposta
-    
+
     if [[ "$risposta" =~ ^[Ss]$ ]]; then
         print_section "Esecuzione Remediation"
-        
-        # Backup directory se esiste
-        if [ -d "$APACHE_RUN_DIR" ]; then
-            timestamp=$(date +%Y%m%d_%H%M%S)
-            backup_dir="/root/apache_lock_backup_$timestamp"
-            mkdir -p "$backup_dir"
-            
-            echo "Creazione backup in $backup_dir..."
-            cp -r "$APACHE_RUN_DIR" "$backup_dir/"
+
+        # Backup delle configurazioni
+        timestamp=$(date +%Y%m%d_%H%M%S)_CIS_3.8
+        backup_dir="/root/apache_perms_backup_$timestamp"
+        mkdir -p "$backup_dir"
+
+        echo "Creazione backup della configurazione in $backup_dir..."
+
+        # Crea un file di log dei permessi attuali
+        echo -e "\n${YELLOW}Creazione log dei permessi attuali...${NC}"
+        for file in "${wrong_permissions[@]}"; do
+            current_perms=$(stat -c '%a %n' "$file")
+            echo "$current_perms" >> "$backup_dir/permissions.log"
+        done
+
+        # Correggi i permessi
+        echo -e "\n${YELLOW}Correzione permessi...${NC}"
+        for file in "${wrong_permissions[@]}"; do
+            if [ -e "$file" ]; then
+                echo "Rimozione permessi di scrittura per: $file"
+                original_perms=$(stat -c '%a' "$file")
+
+                # Rimuovi permesso di scrittura per others
+                chmod go-w "$file"
+
+                # Verifica il risultato
+                new_perms=$(stat -c '%a' "$file")
+                prime_cifre="${new_perms: -5}"
+                if [ "`echo $prime_cifre |grep 'w'`" =~ 'w' ]; then
+                    echo -e "${GREEN}✓ Permessi corretti con successo per $file (${original_perms} -> ${new_perms})${NC}"
+                else
+                    echo -e "${RED}✗ Errore nella correzione dei permessi per $file${NC}"
+                fi
+            fi
+        done
+
+        # Verifica configurazione Apache
+        echo -e "\n${YELLOW}Verifica della configurazione di Apache...${NC}"
+        if $APACHE_CONFIG_DIR/bin/httpd -t 2>/dev/null || apache2ctl -t 2>/dev/null; then
+            echo -e "${GREEN}✓ Configurazione di Apache valida${NC}"
+
+            # Riavvio di Apache
+            echo -e "\n${YELLOW}Riavvio di Apache...${NC}"
+            if systemctl restart httpd 2>/dev/null || systemctl restart apache2 2>/dev/null; then
+                echo -e "${GREEN}✓ Apache riavviato con successo${NC}"
+            else
+                echo -e "${RED}✗ Errore durante il riavvio di Apache${NC}"
+            fi
+        else
+            echo -e "${RED}✗ Errore nella configurazione di Apache${NC}"
+            echo -e "${YELLOW}Ripristino del backup consigliato${NC}"
         fi
-        
-        # Crea/correggi directory di run
-        echo -e "\n${YELLOW}Configurazione directory di run...${NC}"
-        if [ ! -d "$APACHE_RUN_DIR" ]; then
-            mkdir -p "$APACHE_RUN_DIR"
-            echo -e "${GREEN}✓ Directory creata${NC}"
-        fi
-        
-        # Imposta permessi directory
-        chown root:root "$APACHE_RUN_DIR"
-        chmod 755 "$APACHE_RUN_DIR"
-        echo -e "${GREEN}✓ Permessi directory impostati${NC}"
-        
-        # Crea/correggi file di lock
-        echo -e "\n${YELLOW}Configurazione file di lock...${NC}"
-        touch "$LOCK_FILE"
-        chown root:"$APACHE_GROUP" "$LOCK_FILE"
-        chmod 640 "$LOCK_FILE"
-        
+
         # Verifica finale
         print_section "Verifica Finale"
-        
-        ERRORS=0
-        
-        # Verifica directory
-        if [ -d "$APACHE_RUN_DIR" ]; then
-            DIR_PERMS=$(stat -c '%a' "$APACHE_RUN_DIR")
-            if [ "$DIR_PERMS" = "755" ]; then
-                echo -e "${GREEN}✓ Directory configurata correttamente${NC}"
-            else
-                echo -e "${RED}✗ Directory non configurata correttamente${NC}"
-                ((ERRORS++))
+        errors=0
+        for file in "${wrong_permissions[@]}"; do
+            if [ -e "$file" ]; then
+                perms=$(stat -c '%a' "$file")
+                if [ $((perms & 2)) -eq 2 ]; then
+                    echo -e "${RED}✗ $file ha ancora permessi di scrittura (${perms})${NC}"
+                    ((errors++))
+                else
+                    echo -e "${GREEN}✓ $file ha ora permessi corretti (${perms})${NC}"
+                fi
             fi
+        done
+
+        if [ $errors -eq 0 ]; then
+            echo -e "\n${GREEN}✓ Tutti i permessi sono stati corretti con successo${NC}"
         else
-            echo -e "${RED}✗ Directory non creata${NC}"
-            ((ERRORS++))
+            echo -e "\n${RED}✗ Alcuni file presentano ancora problemi${NC}"
         fi
-        
-        # Verifica file di lock
-        if [ -f "$LOCK_FILE" ]; then
-            LOCK_OWNER=$(stat -c '%U' "$LOCK_FILE")
-            LOCK_GROUP=$(stat -c '%G' "$LOCK_FILE")
-            LOCK_PERMS=$(stat -c '%a' "$LOCK_FILE")
-            
-            if [ "$LOCK_OWNER" = "root" ] && \
-               [ "$LOCK_GROUP" = "$APACHE_GROUP" ] && \
-               [ "$LOCK_PERMS" = "640" ]; then
-                echo -e "${GREEN}✓ File di lock configurato correttamente${NC}"
-            else
-                echo -e "${RED}✗ File di lock non configurato correttamente${NC}"
-                ((ERRORS++))
-            fi
-        else
-            echo -e "${RED}✗ File di lock non creato${NC}"
-            ((ERRORS++))
-        fi
-        
-        if [ $ERRORS -eq 0 ]; then
-            echo -e "\n${GREEN}✓ Remediation completata con successo${NC}"
-        else
-            echo -e "\n${RED}✗ Remediation completata con errori${NC}"
-        fi
-        
+
     else
         echo -e "${YELLOW}Remediation annullata dall'utente${NC}"
     fi
 else
-    echo -e "\n${GREEN}✓ Il file di lock è configurato correttamente${NC}"
+    echo -e "\n${GREEN}✓ Non sono stati trovati file con permessi di scrittura 'other' non sicuri${NC}"
 fi
 
 # Riepilogo finale
 print_section "Riepilogo Finale"
-echo "1. Directory di run: $APACHE_RUN_DIR"
-echo "2. File di lock: $LOCK_FILE"
+echo "1. File di configurazione: $APACHE_CONF_FILE"
 if [ -d "$backup_dir" ]; then
-    echo "3. Backup salvato in: $backup_dir"
+    echo "2. Backup della configurazione: $backup_dir"
 fi
-
-echo -e "\n${BLUE}Nota: Un file di lock correttamente configurato garantisce che:${NC}"
-echo -e "${BLUE}- Solo root possa gestire il file di lock${NC}"
-echo -e "${BLUE}- Il processo Apache possa accedere al file quando necessario${NC}"
-echo -e "${BLUE}- Il file sia protetto da accessi non autorizzati${NC}"
-echo -e "${BLUE}- Il sistema di locking funzioni correttamente${NC}"
