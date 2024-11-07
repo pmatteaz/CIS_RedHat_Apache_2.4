@@ -143,7 +143,7 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         print_section "Esecuzione Remediation"
         
         # Backup delle configurazioni esistenti
-        timestamp=$(date +%Y%m%d_%H%M%S)
+        timestamp=$(date +%Y%m%d_%H%M%S)_CIS_6.7
         backup_dir="/root/modsecurity_crs_backup_$timestamp"
         mkdir -p "$backup_dir"
         
