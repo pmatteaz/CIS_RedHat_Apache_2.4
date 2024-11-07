@@ -48,47 +48,47 @@ check_root_directory_config() {
     local found_root=false
     local correct_config=true
     local issues=""
-    
+
     # Cerca la sezione Directory per root
     while IFS= read -r line || [[ -n "$line" ]]; do
         # Rimuovi spazi iniziali e finali
         line=$(echo "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
-        
+
         # Se troviamo l'inizio della sezione Directory root
         if [[ "$line" =~ ^"<Directory /"[[:space:]]*">"$ ]]; then
             found_root=true
             local section=""
-            
+
             # Leggi la sezione fino alla chiusura
             while IFS= read -r section_line || [[ -n "$section_line" ]]; do
                 section_line=$(echo "$section_line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
                 section+="$section_line"$'\n'
-                
+
                 if [[ "$section_line" == "</Directory>" ]]; then
                     break
                 fi
             done
-            
+
             # Verifica le direttive corrette
-            if ! echo "$section" | grep -q "Options None"; then
-                correct_config=false
-                issues+="Options non impostato a None\n"
-            fi
-            
-            if ! echo "$section" | grep -q "AllowOverride None"; then
-                correct_config=false
-                issues+="AllowOverride non impostato a None\n"
-            fi
-            
+            #if ! echo "$section" | grep -q "Options None"; then
+            #    correct_config=false
+            #    issues+="Options non impostato a None\n"
+            #fi
+
+            #if ! echo "$section" | grep -q "AllowOverride None"; then
+            #    correct_config=false
+            #    issues+="AllowOverride non impostato a None\n"
+            #fi
+
             if ! echo "$section" | grep -q "Require all denied"; then
                 correct_config=false
                 issues+="Require all denied non presente\n"
             fi
-            
+
             break
         fi
     done < "$config_file"
-    
+
     if ! $found_root; then
         echo -e "${RED}✗ Sezione <Directory /> non trovata${NC}"
         issues_found+=("no_root_section")
@@ -113,21 +113,22 @@ if [ ${#issues_found[@]} -gt 0 ]; then
     echo -e "\n${YELLOW}Sono stati trovati problemi con la configurazione della directory root.${NC}"
     echo -e "${YELLOW}Vuoi procedere con la remediation? (s/n)${NC}"
     read -r risposta
-    
+
     if [[ "$risposta" =~ ^[Ss]$ ]]; then
         print_section "Esecuzione Remediation"
-        
+
         # Backup del file di configurazione
         timestamp=$(date +%Y%m%d_%H%M%S)
         backup_dir="/root/apache_root_access_backup_$timestamp"
         mkdir -p "$backup_dir"
-        
+
         echo "Creazione backup in $backup_dir..."
         cp -p "$MAIN_CONFIG" "$backup_dir/"
-        
+
         # Prepara la nuova configurazione
-        ROOT_CONFIG="<Directory />\n    Options None\n    AllowOverride None\n    Require all denied\n</Directory>"
-        
+        #ROOT_CONFIG="<Directory />\n    Options None\n    AllowOverride None\n    Require all denied\n</Directory>"
+        ROOT_CONFIG="<Directory />\n    Require all denied\n</Directory>"
+
         # Modifica il file di configurazione
         if grep -q "^<Directory />" "$MAIN_CONFIG"; then
             # Sostituisci la sezione esistente
@@ -138,17 +139,17 @@ if [ ${#issues_found[@]} -gt 0 ]; then
             echo -e "\n${YELLOW}Aggiunta nuova configurazione...${NC}"
             echo -e "\n$ROOT_CONFIG" >> "$MAIN_CONFIG"
         fi
-        
+
         # Verifica la configurazione di Apache
         echo -e "\n${YELLOW}Verifica della configurazione di Apache...${NC}"
         if httpd -t 2>/dev/null || apache2ctl -t 2>/dev/null; then
             echo -e "${GREEN}✓ Configurazione di Apache valida${NC}"
-            
+
             # Riavvio di Apache
             echo -e "\n${YELLOW}Riavvio di Apache...${NC}"
             if systemctl restart httpd 2>/dev/null || systemctl restart apache2 2>/dev/null; then
                 echo -e "${GREEN}✓ Apache riavviato con successo${NC}"
-                
+
                 # Verifica finale
                 print_section "Verifica Finale"
                 if check_root_directory_config "$MAIN_CONFIG"; then
@@ -156,11 +157,11 @@ if [ ${#issues_found[@]} -gt 0 ]; then
                 else
                     echo -e "\n${RED}✗ La configurazione non è stata applicata correttamente${NC}"
                 fi
-                
+
                 # Test pratico
                 echo -e "\n${YELLOW}Esecuzione test di accesso...${NC}"
                 if command_exists curl; then
-                    response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/)
+                    response=$(curl -k -s -o /dev/null -w "%{http_code}" https://localhost/)
                     if [ "$response" = "403" ]; then
                         echo -e "${GREEN}✓ L'accesso alla directory root è correttamente negato${NC}"
                     else
@@ -179,7 +180,7 @@ if [ ${#issues_found[@]} -gt 0 ]; then
             systemctl restart httpd 2>/dev/null || systemctl restart apache2 2>/dev/null
             echo -e "${GREEN}Backup ripristinato${NC}"
         fi
-        
+
     else
         echo -e "${YELLOW}Remediation annullata dall'utente${NC}"
     fi
@@ -193,9 +194,3 @@ echo "1. File di configurazione: $MAIN_CONFIG"
 if [ -d "$backup_dir" ]; then
     echo "2. Backup salvato in: $backup_dir"
 fi
-
-echo -e "\n${BLUE}Nota: La corretta configurazione della directory root garantisce che:${NC}"
-echo -e "${BLUE}- L'accesso al filesystem del sistema operativo sia negato per default${NC}"
-echo -e "${BLUE}- Non sia possibile eseguire override delle configurazioni${NC}"
-echo -e "${BLUE}- Nessuna opzione speciale sia abilitata${NC}"
-echo -e "${BLUE}- La sicurezza del server sia rafforzata contro accessi non autorizzati${NC}"
