@@ -85,7 +85,7 @@ find_directive_in_section() {
     return 1
 }
 
-print_section "Verifica CIS 5.1: Option None per Directory Root del Sistema"
+print_section "Verifica CIS 5.1: Options None per Directory Root del Sistema"
 
 # Verifica se Apache è installato
 if ! command_exists httpd && ! command_exists apache2; then
@@ -108,16 +108,16 @@ fi
 # Array per memorizzare i problemi trovati
 declare -a issues_found=()
 
-print_section "Verifica Option None"
+print_section "Verifica Options None"
 
-# Funzione per verificare la configurazione di Option nella directory root
+# Funzione per verificare la configurazione di Options nella directory root
 check_root_option() {
     local config_file="$1"
     local found_root=false
     local correct_config=true
     local root_section=""
 
-    echo "Controllo configurazione Option in $config_file..."
+    echo "Controllo configurazione Options in $config_file..."
 
     # Cerca la sezione Directory root
     while IFS= read -r line || [[ -n "$line" ]]; do
@@ -138,8 +138,8 @@ check_root_option() {
                 fi
             done
 
-            # Verifica Option None
-            if ! echo "$root_section" | grep -q "^[[:space:]]*Option[[:space:]]*None[[:space:]]*$"; then
+            # Verifica Options None
+            if ! echo "$root_section" | grep -q "^[[:space:]]*Options[[:space:]]*None[[:space:]]*$"; then
                 correct_config=false
             fi
 
@@ -152,11 +152,11 @@ check_root_option() {
         issues_found+=("no_root_section")
         return 1
     elif ! $correct_config; then
-        echo -e "${RED}✗ Option non è configurato correttamente come None${NC}"
+        echo -e "${RED}✗ Options non è configurato correttamente come None${NC}"
         issues_found+=("incorrect_override")
         return 1
     else
-        echo -e "${GREEN}✓ Option è configurato correttamente come None${NC}"
+        echo -e "${GREEN}✓ Options è configurato correttamente come None${NC}"
         return 0
     fi
 }
@@ -175,7 +175,7 @@ if [ ${#issues_found[@]} -gt 0 ]; then
 
         # Backup del file di configurazione
         timestamp=$(date +%Y%m%d_%H%M%S)
-        backup_dir="/root/apache_option_backup_$timestamp"
+        backup_dir="/root/apache_Options_backup_$timestamp"
         mkdir -p "$backup_dir"
 
         echo "Creazione backup in $backup_dir..."
@@ -187,17 +187,17 @@ if [ ${#issues_found[@]} -gt 0 ]; then
             echo -e "\n${YELLOW}Aggiornamento configurazione esistente...${NC}"
 
             # Usa sed per modificare o aggiungere AllowOverride None
-            if find_directive_in_section "$MAIN_CONFIG" "<Directory />" "Option" ; then
+            if find_directive_in_section "$MAIN_CONFIG" "<Directory />" "Options" ; then
                 # Modifica la direttiva esistente
-                sed -i '/<Directory \/>/,/<\/Directory>/ s/Option.*/Option None/' "$MAIN_CONFIG"
+                sed -i '/<Directory \/>/,/<\/Directory>/ s/Options.*/Options None/' "$MAIN_CONFIG"
             else
                 # Aggiungi la direttiva se non esiste
-                sed -i '/<Directory \/>/a\    Option None' "$MAIN_CONFIG"
+                sed -i '/<Directory \/>/a\    Options None' "$MAIN_CONFIG"
             fi
         else
             echo -e "\n${YELLOW}Aggiunta nuova configurazione...${NC}"
             # Aggiungi la sezione completa
-            echo -e "\n<Directory />\n    Option None\n</Directory>" >> "$MAIN_CONFIG"
+            echo -e "\n<Directory />\n    Options None\n</Directory>" >> "$MAIN_CONFIG"
         fi
 
         # Verifica la configurazione di Apache
@@ -253,7 +253,7 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         echo -e "${YELLOW}Remediation annullata dall'utente${NC}"
     fi
 else
-    echo -e "\n${GREEN}✓ La configurazione Option è corretta${NC}"
+    echo -e "\n${GREEN}✓ La configurazione Options è corretta${NC}"
 fi
 
 # Riepilogo finale
