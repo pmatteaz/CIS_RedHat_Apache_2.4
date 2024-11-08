@@ -1,3 +1,4 @@
+
 #!/bin/bash
 
 # Colori per output
@@ -214,27 +215,6 @@ if [ ${#issues_found[@]} -gt 0 ]; then
                 print_section "Verifica Finale"
                 if check_root_option "$MAIN_CONFIG"; then
                     echo -e "\n${GREEN}✓ Remediation completata con successo${NC}"
-
-                    # Test pratico
-                    echo -e "\n${YELLOW}Esecuzione test di configurazione...${NC}"
-
-                    # Crea un .htaccess di test nella root
-                    test_htaccess="/.htaccess"
-                    if [ -w "/" ]; then
-                        echo "Require all granted" > "$test_htaccess"
-                        if [ -f "$test_htaccess" ]; then
-                            if curl -s http://localhost/ | grep -q "403"; then
-                                echo -e "${GREEN}✓ Override correttamente disabilitato - Il file .htaccess viene ignorato${NC}"
-                            else
-                                echo -e "${RED}✗ Il file .htaccess potrebbe ancora influenzare la configurazione${NC}"
-                            fi
-                            rm -f "$test_htaccess"
-                        else
-                            echo -e "${YELLOW}! Impossibile creare file di test${NC}"
-                        fi
-                    else
-                        echo -e "${YELLOW}! Impossibile eseguire il test pratico - permessi insufficienti${NC}"
-                    fi
                 else
                     echo -e "\n${RED}✗ La configurazione non è stata applicata correttamente${NC}"
                 fi
