@@ -3,7 +3,8 @@
 modify_apache_directory() {
     local file="$1"          # File di configurazione Apache
     local directives="$2"    # Direttive da modificare/inserire (formato: "directive1 value1;directive2 value2")
-    local directory="/var/www/httpd"  # Directory fissa
+    local directory="$3"
+    #local directory="/var/www/httpd"  # Directory fissa
     local temp_file=$(mktemp)
     local in_section=false
     local section_found=false
@@ -108,4 +109,4 @@ validate_apache_directive() {
 }
 
 # Esempio di utilizzo:
-# modify_apache_directory "/etc/apache2/apache2.conf" "Options FollowSymLinks;AllowOverride All;Require all granted"
+# modify_apache_directory "/etc/apache2/apache2.conf" "Options FollowSymLinks;AllowOverride All;Require all granted" "/var/www/httpd"
