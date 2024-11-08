@@ -17,7 +17,7 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-print_section "Verifica CIS 5.1: Accesso alla Directory Root del Sistema Operativo"
+print_section "Verifica CIS 5.1: La direttiva Options per os Root Directory deve essere Restricted"
 
 # Verifica se Apache è installato
 if ! command_exists httpd && ! command_exists apache2; then
@@ -70,20 +70,20 @@ check_root_directory_config() {
             done
 
             # Verifica le direttive corrette
-            #if ! echo "$section" | grep -q "Options None"; then
-            #    correct_config=false
-            #    issues+="Options non impostato a None\n"
-            #fi
+            if ! echo "$section" | grep -q "Options None"; then
+                correct_config=false
+                issues+="Options non impostato a None\n"
+            fi
 
             #if ! echo "$section" | grep -q "AllowOverride None"; then
             #    correct_config=false
             #    issues+="AllowOverride non impostato a None\n"
             #fi
 
-            if ! echo "$section" | grep -q "Require all denied"; then
-                correct_config=false
-                issues+="Require all denied non presente\n"
-            fi
+            #if ! echo "$section" | grep -q "Require all denied"; then
+            #    correct_config=false
+            #    issues+="Require all denied non presente\n"
+            #fi
 
             break
         fi
@@ -127,7 +127,7 @@ if [ ${#issues_found[@]} -gt 0 ]; then
 
         # Prepara la nuova configurazione
         #ROOT_CONFIG="<Directory />\n    Options None\n    AllowOverride None\n    Require all denied\n</Directory>"
-        ROOT_CONFIG="<Directory />\n    Require all denied\n</Directory>"
+        ROOT_CONFIG="<Directory />\n    Options None\n</Directory>"
 
         # Modifica il file di configurazione
         if grep -q "^<Directory />" "$MAIN_CONFIG"; then
