@@ -212,7 +212,7 @@ if [ ${#issues_found[@]} -gt 0 ]; then
 
                 # Verifica finale
                 print_section "Verifica Finale"
-                if check_root_override "$MAIN_CONFIG"; then
+                if check_root_option "$MAIN_CONFIG"; then
                     echo -e "\n${GREEN}✓ Remediation completata con successo${NC}"
 
                     # Test pratico
