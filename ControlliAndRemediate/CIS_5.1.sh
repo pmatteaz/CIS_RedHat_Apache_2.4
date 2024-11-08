@@ -17,6 +17,74 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
+# Funzione per cercare una direttiva in una sezione specifica
+# Parametri:
+# $1 = file di configurazione
+# $2 = nome della sezione (es. "<VirtualHost *:80>")
+# $3 = direttiva da cercare (es. "DocumentRoot")
+# Return:
+# 0 se trovata, 1 se non trovata
+# Output:
+# Stampa il valore della direttiva se trovata
+
+find_directive_in_section() {
+    local config_file="$1"
+    local section_name="$2"
+    local directive="$3"
+    local in_section=0
+    local section_depth=0
+    local result=""
+
+    # Verifica che il file esista
+    if [ ! -f "$config_file" ]; then
+        echo "Errore: File $config_file non trovato" >&2
+        return 1
+    fi
+    # Legge il file riga per riga
+    while IFS= read -r line || [ -n "$line" ]; do
+        # Rimuove spazi iniziali e finali
+        line=$(echo "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+
+        # Salta linee vuote e commenti
+        [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+
+        # Controlla inizio sezione
+        if [[ "$line" =~ (^<[^/]) ]]; then
+            # Se è la sezione che cerchiamo
+            if [[ "$line" == "$section_name"* ]]; then
+                in_section=1
+            fi
+            ((section_depth++))
+        fi
+
+        # Controlla fine sezione
+        if [[ "$line" =~ (^</[^>]+>) ]]; then
+            ((section_depth--))
+            if [ $section_depth -lt 0 ]; then
+                section_depth=0
+            fi
+            # Se usciamo dalla sezione che ci interessa
+            if [ $in_section -eq 1 ] && [ $section_depth -eq 0 ]; then
+                in_section=0
+            fi
+        fi
+
+        # Se siamo nella sezione corretta, cerca la direttiva
+        if [ $in_section -eq 1 ]; then
+            # Controlla se la riga inizia con la direttiva
+            if [[ "$line" =~ ^${directive}[[:space:]] ]]; then
+                # Estrae il valore della direttiva
+                result=$(echo "$line" | sed "s/^${directive}[[:space:]]*//")
+                echo "$result"
+                return 0
+            fi
+        fi
+    done < "$config_file"
+
+    # Se non trova nulla
+    return 1
+}
+
 print_section "Verifica CIS 5.1: Options per Directory Root del Sistema"
 
 # Verifica se Apache è installato
