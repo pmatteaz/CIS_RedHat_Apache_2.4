@@ -113,7 +113,7 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         print_section "Esecuzione Remediation"
         
         # Backup del file di configurazione
-        timestamp=$(date +%Y%m%d_%H%M%S)
+        timestamp=$(date +%Y%m%d_%H%M%S)_CIS_5.7
         backup_dir="/root/apache_methods_backup_$timestamp"
         mkdir -p "$backup_dir"
         
