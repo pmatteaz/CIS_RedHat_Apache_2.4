@@ -45,9 +45,10 @@ declare -a issues_found=()
 print_section "Verifica Configurazione HTTP Protocol"
 
 # Configurazione necessaria per il rewrite
-REWRITE_CONFIG="RewriteEngine On
-RewriteCond %{THE_REQUEST} !HTTP/1\.1$
-RewriteRule .* - [F]"
+REWRITE_CONFIG="RewriteEngine On \
+RewriteCond %{THE_REQUEST} !HTTP/1\.1$ \
+RewriteRule .* - [F] \
+"
 
 # Funzione per verificare la configurazione del protocollo
 check_protocol_config() {
