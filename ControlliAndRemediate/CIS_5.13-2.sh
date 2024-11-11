@@ -19,10 +19,12 @@ fi
 
 # Determina la distribuzione e i percorsi
 if [ -f /etc/redhat-release ]; then
+    APACHE_CONFIG_DIR="/etc/httpd/"
     APACHE_CONFIG="/etc/httpd/conf/httpd.conf"
     SECURITY_CONF="/etc/httpd/conf.d/security.conf"
     APACHE_SERVICE="httpd"
 elif [ -f /etc/debian_version ]; then
+    APACHE_CONFIG_DIR="/etc/apache2/"
     APACHE_CONFIG="/etc/apache2/apache2.conf"
     SECURITY_CONF="/etc/apache2/conf-available/security.conf"
     APACHE_SERVICE="apache2"
@@ -114,12 +116,14 @@ implement_missing_config() {
     local missing_configs=("$@")
     local need_restart=false
 
-    # Crea backup se il file esiste
-    if [ -f "$SECURITY_CONF" ]; then
-        BACKUP_DATE=$(date +%Y%m%d_%H%M%S)_CIS_5.13
-        cp "$SECURITY_CONF" "${SECURITY_CONF}.${BACKUP_DATE}.bak"
-        log_message "${GREEN}Backup creato: ${SECURITY_CONF}.${BACKUP_DATE}.bak${NC}"
-    fi
+    # Backup della configurazione
+        timestamp=$(date +%Y%m%d_%H%M%S)_CIS_3.8
+        backup_dir="/root/apache_coredump_backup_$timestamp"
+        mkdir -p "$backup_dir"
+
+        echo "Creazione backup della configurazione in $backup_dir..."
+        cp -r "$APACHE_CONF_PATH" "$backup_dir/"
+        log_message "${GREEN}Backup creato sotto: $backup_dir/"
 
     # Se manca tutto o se ci sono configurazioni mancanti, crea/aggiorna il file
     if [[ " ${missing_configs[@]} " =~ "all" ]] || [ ${#missing_configs[@]} -gt 0 ]; then
