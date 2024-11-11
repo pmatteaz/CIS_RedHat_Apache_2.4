@@ -27,9 +27,11 @@ fi
 
 # Determina il tipo di sistema e i percorsi
 if [ -f /etc/redhat-release ]; then
+    APACHE_CMD="httpd"
     APACHE_CONFIG_DIR="/etc/httpd"
     MAIN_CONFIG="$APACHE_CONFIG_DIR/conf/httpd.conf"
 elif [ -f /etc/debian_version ]; then
+    
     APACHE_CONFIG_DIR="/etc/apache2"
     MAIN_CONFIG="$APACHE_CONFIG_DIR/apache2.conf"
 else
