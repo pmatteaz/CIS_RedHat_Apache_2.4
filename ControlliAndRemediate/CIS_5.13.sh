@@ -76,13 +76,13 @@ check_extensions_config() {
     local found_config=false
     local correct_config=true
     local issues=""
-    
+
     echo "Controllo configurazione in $config_file..."
-    
+
     # Cerca la direttiva FilesMatch per le estensioni
-    if grep -q "<FilesMatch.*\\\.\(.*\)\\$" "$config_file"; then
+    if egrep -q '(<FilesMatch.*\\\.\(.*\)\\$)' "$config_file"; then
         found_config=true
-        
+
         # Verifica che includa tutte le estensioni necessarie
         for ext in "${DENIED_EXTENSIONS[@]}"; do
             if ! grep -q "$ext" "$config_file"; then
@@ -90,9 +90,9 @@ check_extensions_config() {
                 issues+="Estensione $ext non bloccata\n"
             fi
         done
-        
+
         # Verifica che includa "Require all denied"
-        if ! grep -A2 "<FilesMatch.*\\\.\(.*\)\\$" "$config_file" | grep -q "Require all denied"; then
+        if ! egrep -A2 '(<FilesMatch.*\\\.\(.*\)\\$)' "$config_file" | grep -q "Require all denied"; then
             correct_config=false
             issues+="Manca 'Require all denied' nella configurazione\n"
         fi
@@ -100,7 +100,7 @@ check_extensions_config() {
         found_config=false
         issues+="Configurazione FilesMatch per estensioni non trovata\n"
     fi
-    
+
     if ! $found_config; then
         echo -e "${RED}✗ Configurazione FilesMatch per estensioni non trovata${NC}"
         issues_found+=("no_extensions_config")
@@ -133,7 +133,7 @@ fi
 # Verifica la configurazione in tutti i file pertinenti
 found_extensions_config=false
 while IFS= read -r -d '' config_file; do
-    if grep -q "FilesMatch.*\\.\(" "$config_file"; then
+    if egrep -q '(FilesMatch.*\\.\()' "$config_file"; then
         if check_extensions_config "$config_file"; then
             found_extensions_config=true
         fi
@@ -150,53 +150,53 @@ if [ ${#issues_found[@]} -gt 0 ]; then
     echo -e "\n${YELLOW}Sono stati trovati problemi con la protezione delle estensioni file.${NC}"
     echo -e "${YELLOW}Vuoi procedere con la remediation? (s/n)${NC}"
     read -r risposta
-    
+
     if [[ "$risposta" =~ ^[Ss]$ ]]; then
         print_section "Esecuzione Remediation"
-        
+
         # Backup del file di configurazione
         timestamp=$(date +%Y%m%d_%H%M%S)_CIS_5.13
         backup_dir="/root/apache_extensions_backup_$timestamp"
         mkdir -p "$backup_dir"
-        
+
         echo "Creazione backup in $backup_dir..."
         cp -r "$APACHE_CONFIG_DIR" "$backup_dir/"
-        
+
         # Aggiungi la configurazione per le estensioni file
         echo -e "\n${YELLOW}Aggiunta configurazione per estensioni file...${NC}"
-        
+
         # Cerca configurazione esistente
-        if grep -q "<FilesMatch.*\\.\(" "$MAIN_CONFIG"; then
+        if egrep -q '(<FilesMatch.*\\.\()' "$MAIN_CONFIG"; then
             # Sostituisci la configurazione esistente
             sed -i '/<FilesMatch.*\.\(/,/<\/FilesMatch>/c\'"$FILESMATCH_CONFIG" "$MAIN_CONFIG"
         else
             # Aggiungi la nuova configurazione
             echo -e "\n$FILESMATCH_CONFIG" >> "$MAIN_CONFIG"
         fi
-        
+
         # Verifica la configurazione di Apache
         echo -e "\n${YELLOW}Verifica della configurazione di Apache...${NC}"
         if httpd -t 2>/dev/null || apache2ctl -t 2>/dev/null; then
             echo -e "${GREEN}✓ Configurazione di Apache valida${NC}"
-            
+
             # Riavvio di Apache
             echo -e "\n${YELLOW}Riavvio di Apache...${NC}"
             if systemctl restart httpd 2>/dev/null || systemctl restart apache2 2>/dev/null; then
                 echo -e "${GREEN}✓ Apache riavviato con successo${NC}"
-                
+
                 # Verifica finale
                 print_section "Verifica Finale"
-                
+
                 # Test pratico
                 echo -e "\n${YELLOW}Esecuzione test di accesso...${NC}"
-                
+
                 # Crea file di test per ogni estensione
                 test_dir="/var/www/html/test_extensions"
                 mkdir -p "$test_dir"
-                
+
                 for ext in "${DENIED_EXTENSIONS[@]}"; do
                     echo "Test content" > "$test_dir/test.$ext"
-                    
+
                     if command_exists curl; then
                         response=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost/test_extensions/test.$ext")
                         if [ "$response" = "403" ]; then
@@ -206,24 +206,24 @@ if [ ${#issues_found[@]} -gt 0 ]; then
                         fi
                     fi
                 done
-                
+
                 # Pulizia file di test
                 rm -rf "$test_dir"
-                
+
             else
                 echo -e "${RED}✗ Errore durante il riavvio di Apache${NC}"
             fi
         else
             echo -e "${RED}✗ Errore nella configurazione di Apache${NC}"
             echo -e "${YELLOW}Ripristino del backup...${NC}"
-            
+
             # Ripristina dal backup
             cp -r "$backup_dir"/* "$APACHE_CONFIG_DIR/"
-            
+
             systemctl restart httpd 2>/dev/null || systemctl restart apache2 2>/dev/null
             echo -e "${GREEN}Backup ripristinato${NC}"
         fi
-        
+
     else
         echo -e "${YELLOW}Remediation annullata dall'utente${NC}"
     fi
