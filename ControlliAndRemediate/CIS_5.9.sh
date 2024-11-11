@@ -56,9 +56,9 @@ check_protocol_config() {
     local found_rewrite=false
     local found_condition=false
     local found_rule=false
-    
+
     echo "Controllo configurazione in $config_file..."
-    
+
     # Verifica RewriteEngine
     if grep -q "^[[:space:]]*RewriteEngine[[:space:]]*On" "$config_file"; then
         found_rewrite=true
@@ -67,16 +67,16 @@ check_protocol_config() {
         echo -e "${RED}✗ RewriteEngine On non trovato${NC}"
         issues_found+=("no_rewrite_engine")
     fi
-    
+
     # Verifica RewriteCond per HTTP/1.1
-    if grep -q "RewriteCond.*THE_REQUEST.*HTTP/1\\.1" "$config_file"; then
+    if egrep -q '(RewriteCond.*THE_REQUEST.*HTTP/1\\.1)' "$config_file"; then
         found_condition=true
         echo -e "${GREEN}✓ RewriteCond per HTTP/1.1 trovato${NC}"
     else
         echo -e "${RED}✗ RewriteCond per HTTP/1.1 non trovato${NC}"
         issues_found+=("no_rewrite_cond")
     fi
-    
+
     # Verifica RewriteRule per bloccare le richieste
     if grep -q "RewriteRule.*\\[F\\]" "$config_file"; then
         found_rule=true
@@ -85,7 +85,7 @@ check_protocol_config() {
         echo -e "${RED}✗ RewriteRule per bloccare le richieste non trovato${NC}"
         issues_found+=("no_rewrite_rule")
     fi
-    
+
     return $((found_rewrite && found_condition && found_rule))
 }
 
@@ -109,18 +109,18 @@ if [ ${#issues_found[@]} -gt 0 ]; then
     echo -e "\n${YELLOW}Sono stati trovati problemi con la configurazione del protocollo HTTP.${NC}"
     echo -e "${YELLOW}Vuoi procedere con la remediation? (s/n)${NC}"
     read -r risposta
-    
+
     if [[ "$risposta" =~ ^[Ss]$ ]]; then
         print_section "Esecuzione Remediation"
-        
+
         # Backup del file di configurazione
         timestamp=$(date +%Y%m%d_%H%M%S)
         backup_dir="/root/apache_protocol_backup_$timestamp"
         mkdir -p "$backup_dir"
-        
+
         echo "Creazione backup in $backup_dir..."
         cp -r "$APACHE_CONFIG_DIR" "$backup_dir/"
-        
+
         # Verifica se mod_rewrite è abilitato
         echo -e "\n${YELLOW}Verifica modulo rewrite...${NC}"
         if ! $APACHE_CMD -M 2>/dev/null | grep -q "rewrite_module" && \
@@ -133,39 +133,39 @@ if [ ${#issues_found[@]} -gt 0 ]; then
                 echo "LoadModule rewrite_module modules/mod_rewrite.so" >> "$MAIN_CONFIG"
             fi
         fi
-        
+
         # Aggiungi la configurazione per il protocollo HTTP
         echo -e "\n${YELLOW}Aggiunta configurazione protocollo HTTP...${NC}"
-        
+
         # Crea un file di configurazione dedicato per le regole di rewrite
         PROTOCOL_CONF="$APACHE_CONFIG_DIR/conf.d/protocol-security.conf"
         if [ -f /etc/debian_version ]; then
             PROTOCOL_CONF="$APACHE_CONFIG_DIR/conf-available/protocol-security.conf"
         fi
-        
+
         echo "$REWRITE_CONFIG" > "$PROTOCOL_CONF"
-        
+
         # Per Debian/Ubuntu, abilita il file di configurazione
         if [ -f /etc/debian_version ]; then
             a2enconf protocol-security
         fi
-        
+
         # Verifica la configurazione di Apache
         echo -e "\n${YELLOW}Verifica della configurazione di Apache...${NC}"
         if httpd -t 2>/dev/null || apache2ctl -t 2>/dev/null; then
             echo -e "${GREEN}✓ Configurazione di Apache valida${NC}"
-            
+
             # Riavvio di Apache
             echo -e "\n${YELLOW}Riavvio di Apache...${NC}"
             if systemctl restart httpd 2>/dev/null || systemctl restart apache2 2>/dev/null; then
                 echo -e "${GREEN}✓ Apache riavviato con successo${NC}"
-                
+
                 # Verifica finale
                 print_section "Verifica Finale"
-                
+
                 # Test pratico delle richieste HTTP
                 echo -e "\n${YELLOW}Esecuzione test delle richieste HTTP...${NC}"
-                
+
                 if command_exists curl; then
                     # Test con HTTP/1.0
                     echo -e "Test HTTP/1.0..."
@@ -175,7 +175,7 @@ if [ ${#issues_found[@]} -gt 0 ]; then
                     else
                         echo -e "${RED}✗ HTTP/1.0 non bloccato (HTTP $response)${NC}"
                     fi
-                    
+
                     # Test con HTTP/1.1
                     echo -e "Test HTTP/1.1..."
                     response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/)
@@ -184,7 +184,7 @@ if [ ${#issues_found[@]} -gt 0 ]; then
                     else
                         echo -e "${RED}✗ HTTP/1.1 non funzionante (HTTP $response)${NC}"
                     fi
-                    
+
                     # Test con header personalizzato
                     echo -e "Test richiesta non standard..."
                     response=$(curl -s -o /dev/null -w "%{http_code}" -H "Connection: keep-alive" http://localhost/)
@@ -193,25 +193,25 @@ if [ ${#issues_found[@]} -gt 0 ]; then
                     else
                         echo -e "${RED}✗ Problemi con header personalizzati (HTTP $response)${NC}"
                     fi
-                    
+
                 else
                     echo -e "${YELLOW}! curl non installato, impossibile eseguire i test pratici${NC}"
                 fi
-                
+
             else
                 echo -e "${RED}✗ Errore durante il riavvio di Apache${NC}"
             fi
         else
             echo -e "${RED}✗ Errore nella configurazione di Apache${NC}"
             echo -e "${YELLOW}Ripristino del backup...${NC}"
-            
+
             # Ripristina dal backup
             cp -r "$backup_dir"/* "$APACHE_CONFIG_DIR/"
-            
+
             systemctl restart httpd 2>/dev/null || systemctl restart apache2 2>/dev/null
             echo -e "${GREEN}Backup ripristinato${NC}"
         fi
-        
+
     else
         echo -e "${YELLOW}Remediation annullata dall'utente${NC}"
     fi
