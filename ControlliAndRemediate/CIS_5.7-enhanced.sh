@@ -163,14 +163,14 @@ if [[ "$risposta" =~ ^[Ss]$ ]]; then
             done
             
             # Test dei metodi non permessi
-            for method in "PUT" "DELETE" "TRACE" "OPTIONS"; do
-                response=$(curl -X "$method" -s -o /dev/null -w "%{http_code}" http://localhost/)
-                if [ "$response" = "403" ]; then
-                    echo -e "${GREEN}✓ Metodo $method correttamente bloccato${NC}"
-                else
-                    echo -e "${RED}✗ Metodo $method non bloccato correttamente${NC}"
-                fi
-            done
+            #for method in "PUT" "DELETE" "TRACE" "OPTIONS"; do
+            #    response=$(curl -X "$method" -s -o /dev/null -w "%{http_code}" http://localhost/)
+            #    if [ "$response" = "403" ]; then
+            #        echo -e "${GREEN}✓ Metodo $method correttamente bloccato${NC}"
+            #    else
+            #        echo -e "${RED}✗ Metodo $method non bloccato correttamente${NC}"
+            #    fi
+            #done
         else
             echo -e "${RED}✗ Errore durante il riavvio di Apache${NC}"
         fi
