@@ -120,15 +120,15 @@ read -r risposta
 
 if [[ "$risposta" =~ ^[Ss]$ ]]; then
     print_section "Esecuzione Remediation"
-
+    
     # Backup dei file di configurazione
     timestamp=$(date +%Y%m%d_%H%M%S)_CIS_5.7
     backup_dir="/root/apache_methods_backup_$timestamp"
     mkdir -p "$backup_dir"
-
+    
     echo "Creazione backup in $backup_dir..."
     cp -r "$APACHE_CONFIG_DIR" "$backup_dir/"
-
+    
     # Processa ogni file di configurazione
     for config_file in "${config_files[@]}"; do
         echo -e "\nProcessing file: $config_file"
@@ -138,49 +138,49 @@ if [[ "$risposta" =~ ^[Ss]$ ]]; then
             echo -e "${YELLOW}Nessuna modifica necessaria in $config_file${NC}"
         fi
     done
-
+    
     # Verifica la configurazione di Apache
     echo -e "\n${YELLOW}Verifica della configurazione di Apache...${NC}"
     if httpd -t 2>/dev/null || apache2ctl -t 2>/dev/null; then
         echo -e "${GREEN}✓ Configurazione di Apache valida${NC}"
-
+        
         # Riavvio di Apache
         echo -e "\n${YELLOW}Riavvio di Apache...${NC}"
         if systemctl restart httpd 2>/dev/null || systemctl restart apache2 2>/dev/null; then
             echo -e "${GREEN}✓ Apache riavviato con successo${NC}"
-
+            
             # Test pratici
-            #echo -e "\n${YELLOW}Esecuzione test dei metodi HTTP...${NC}"
-
+            echo -e "\n${YELLOW}Esecuzione test dei metodi HTTP...${NC}"
+            
             # Test dei metodi permessi
-            #for method in "${ALLOWED_METHODS[@]}"; do
-            #    response=$(curl -k -X "$method" -s -o /dev/null -w "%{http_code}" https://localhost/)
-            #    if [ "$response" != "403" ]; then
-            #        echo -e "${GREEN}✓ Metodo $method permesso${NC}"
-            #    else
-            #        echo -e "${RED}✗ Metodo $method bloccato inaspettatamente${NC}"
-            #    fi
-            #done
-
+            for method in "${ALLOWED_METHODS[@]}"; do
+                response=$(curl -X "$method" -s -o /dev/null -w "%{http_code}" http://localhost/)
+                if [ "$response" != "403" ]; then
+                    echo -e "${GREEN}✓ Metodo $method permesso${NC}"
+                else
+                    echo -e "${RED}✗ Metodo $method bloccato inaspettatamente${NC}"
+                fi
+            done
+            
             # Test dei metodi non permessi
-            #for method in "PUT" "DELETE" "TRACE" "OPTIONS"; do
-            #    response=$(curl -k -X "$method" -s -o /dev/null -w "%{http_code}" https://localhost/)
-            #    if [ "$response" = "403" ]; then
-            #        echo -e "${GREEN}✓ Metodo $method correttamente bloccato${NC}"
-            #    else
-            #        echo -e "${RED}✗ Metodo $method non bloccato correttamente${NC}"
-            #    fi
-            #done
+            for method in "PUT" "DELETE" "TRACE" "OPTIONS"; do
+                response=$(curl -X "$method" -s -o /dev/null -w "%{http_code}" http://localhost/)
+                if [ "$response" = "403" ]; then
+                    echo -e "${GREEN}✓ Metodo $method correttamente bloccato${NC}"
+                else
+                    echo -e "${RED}✗ Metodo $method non bloccato correttamente${NC}"
+                fi
+            done
         else
             echo -e "${RED}✗ Errore durante il riavvio di Apache${NC}"
         fi
     else
         echo -e "${RED}✗ Errore nella configurazione di Apache${NC}"
         echo -e "${YELLOW}Ripristino del backup...${NC}"
-
+        
         # Ripristina dal backup
         cp -r "$backup_dir"/* "$APACHE_CONFIG_DIR/"
-
+        
         systemctl restart httpd 2>/dev/null || systemctl restart apache2 2>/dev/null
         echo -e "${GREEN}Backup ripristinato${NC}"
     fi
