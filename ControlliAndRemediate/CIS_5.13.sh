@@ -17,7 +17,7 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-print_section "Verifica CIS 5.13: Restrizione Accesso File con Estensioni Inappropriate"
+print_section "Verifica CIS 5.13: Configurazione Restrittiva Accesso File"
 
 # Verifica se Apache è installato
 if ! command_exists httpd && ! command_exists apache2; then
@@ -39,36 +39,50 @@ else
     exit 1
 fi
 
-# Array delle estensioni da bloccare
-DENIED_EXTENSIONS=(
-    "bak"
-    "config"
-    "sql"
-    "fla"
-    "psd"
-    "ini"
-    "log"
-    "sh"
-    "inc"
-    "swp"
-    "dist"
-    "old"
-    "original"
-    "template"
-    "php~"
-    "php#"
+# Array delle estensioni permesse
+ALLOWED_EXTENSIONS=(
+    "html"
+    "htm"
+    "css"
+    "js"
+    "jpg"
+    "jpeg"
+    "png"
+    "gif"
+    "svg"
+    "ico"
+    "pdf"
+    "xml"
+    "txt"
+    "webp"
 )
 
 # Configurazione necessaria
-EXTENSIONS_REGEX=$(IFS="|"; echo "${DENIED_EXTENSIONS[*]}")
-FILESMATCH_CONFIG="<FilesMatch \"^.*\.(${EXTENSIONS_REGEX})\$\">
+EXTENSIONS_REGEX=$(IFS="|"; echo "${ALLOWED_EXTENSIONS[*]}")
+FILESMATCH_CONFIG="# Blocca tutti i file per default
+<Files \"*\">
+    Require all denied
+</Files>
+
+# Permetti solo le estensioni specificate
+<FilesMatch \"^.*\.(${EXTENSIONS_REGEX})\$\">
+    Require all granted
+</FilesMatch>
+
+# Blocca esplicitamente l'accesso ai file che iniziano con punto
+<FilesMatch \"^\.\">
+    Require all denied
+</FilesMatch>
+
+# Blocca l'accesso ai file di backup e temporanei
+<FilesMatch \"(~|\#|\%|\$)$\">
     Require all denied
 </FilesMatch>"
 
 # Array per memorizzare i problemi trovati
 declare -a issues_found=()
 
-print_section "Verifica Configurazione FilesMatch per Estensioni"
+print_section "Verifica Configurazione FilesMatch"
 
 # Funzione per verificare la configurazione delle estensioni
 check_extensions_config() {
@@ -79,52 +93,51 @@ check_extensions_config() {
 
     echo "Controllo configurazione in $config_file..."
 
-    # Cerca la direttiva FilesMatch per le estensioni
+    # Cerca la configurazione di base che blocca tutti i file
+    if ! grep -q '<Files "\*">' "$config_file" || ! grep -q 'Require all denied' "$config_file"; then
+        correct_config=false
+        issues+="Manca configurazione base di blocco\n"
+    fi
+
+    # Cerca la direttiva FilesMatch per le estensioni permesse
     if egrep -q '(<FilesMatch.*\\\.\(.*\)\\$)' "$config_file"; then
         found_config=true
 
         # Verifica che includa tutte le estensioni necessarie
-        for ext in "${DENIED_EXTENSIONS[@]}"; do
+        for ext in "${ALLOWED_EXTENSIONS[@]}"; do
             if ! grep -q "$ext" "$config_file"; then
                 correct_config=false
-                issues+="Estensione $ext non bloccata\n"
+                issues+="Estensione $ext non configurata\n"
             fi
         done
-
-        # Verifica che includa "Require all denied"
-        if ! egrep -A2 '(<FilesMatch.*\\\.\(.*\)\\$)' "$config_file" | grep -q "Require all denied"; then
-            correct_config=false
-            issues+="Manca 'Require all denied' nella configurazione\n"
-        fi
     else
         found_config=false
-        issues+="Configurazione FilesMatch per estensioni non trovata\n"
+        issues+="Configurazione FilesMatch per estensioni permesse non trovata\n"
     fi
 
     if ! $found_config; then
-        echo -e "${RED}✗ Configurazione FilesMatch per estensioni non trovata${NC}"
+        echo -e "${RED}✗ Configurazione FilesMatch non trovata${NC}"
         issues_found+=("no_extensions_config")
         return 1
     elif ! $correct_config; then
-        echo -e "${RED}✗ Configurazione FilesMatch per estensioni non corretta:${NC}"
+        echo -e "${RED}✗ Configurazione FilesMatch non corretta:${NC}"
         echo -e "${RED}${issues}${NC}"
         issues_found+=("incorrect_config")
         return 1
     else
-        echo -e "${GREEN}✓ Configurazione FilesMatch per estensioni corretta${NC}"
+        echo -e "${GREEN}✓ Configurazione FilesMatch corretta${NC}"
         return 0
     fi
 }
 
-# Cerca file con estensioni non consentite nel DocumentRoot
-print_section "Ricerca File con Estensioni non Consentite"
+# Cerca file con estensioni non permesse nel DocumentRoot
+print_section "Ricerca File con Estensioni non Permesse"
 if [ -d "$DOCUMENT_ROOT" ]; then
-    echo "Cercando file con estensioni non consentite in $DOCUMENT_ROOT..."
-    for ext in "${DENIED_EXTENSIONS[@]}"; do
-        found_files=$(find "$DOCUMENT_ROOT" -type f -name "*.$ext" 2>/dev/null)
-        if [ -n "$found_files" ]; then
-            echo -e "${RED}✗ Trovati file con estensione .$ext:${NC}"
-            echo "$found_files"
+    echo "Cercando file con estensioni non permesse in $DOCUMENT_ROOT..."
+    find "$DOCUMENT_ROOT" -type f | while read -r file; do
+        ext="${file##*.}"
+        if [[ ! " ${ALLOWED_EXTENSIONS[@]} " =~ " ${ext} " ]] && [[ -n "$ext" ]]; then
+            echo -e "${RED}✗ Trovato file non permesso: $file${NC}"
             issues_found+=("dangerous_files_found")
         fi
     done
@@ -133,17 +146,12 @@ fi
 # Verifica la configurazione in tutti i file pertinenti
 found_extensions_config=false
 while IFS= read -r -d '' config_file; do
-    if egrep -q '(FilesMatch.*\\.\()' "$config_file"; then
+    if egrep -q '(FilesMatch|Files)' "$config_file"; then
         if check_extensions_config "$config_file"; then
             found_extensions_config=true
         fi
     fi
 done < <(find "$APACHE_CONFIG_DIR" -type f -name "*.conf" -print0)
-
-# Se non è stata trovata nessuna configurazione, aggiungila alla lista dei problemi
-if ! $found_extensions_config; then
-    issues_found+=("no_extensions_config")
-fi
 
 # Se ci sono problemi, offri remediation
 if [ ${#issues_found[@]} -gt 0 ]; then
@@ -165,14 +173,10 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         # Aggiungi la configurazione per le estensioni file
         echo -e "\n${YELLOW}Aggiunta configurazione per estensioni file...${NC}"
 
-        # Cerca configurazione esistente
-        if egrep -q '(<FilesMatch.*\\.\()' "$MAIN_CONFIG"; then
-            # Sostituisci la configurazione esistente
-            sed -i '/<FilesMatch.*\.\(/,/<\/FilesMatch>/c\'"$FILESMATCH_CONFIG" "$MAIN_CONFIG"
-        else
-            # Aggiungi la nuova configurazione
-            echo -e "\n$FILESMATCH_CONFIG" >> "$MAIN_CONFIG"
-        fi
+        # Rimuovi configurazioni esistenti e aggiungi la nuova
+        sed -i '/<Files.*>/,/<\/Files>/d' "$MAIN_CONFIG"
+        sed -i '/<FilesMatch.*>/,/<\/FilesMatch>/d' "$MAIN_CONFIG"
+        echo -e "\n$FILESMATCH_CONFIG" >> "$MAIN_CONFIG"
 
         # Verifica la configurazione di Apache
         echo -e "\n${YELLOW}Verifica della configurazione di Apache...${NC}"
@@ -184,46 +188,42 @@ if [ ${#issues_found[@]} -gt 0 ]; then
             if systemctl restart httpd 2>/dev/null || systemctl restart apache2 2>/dev/null; then
                 echo -e "${GREEN}✓ Apache riavviato con successo${NC}"
 
-                # Verifica finale
-                print_section "Verifica Finale"
-
                 # Test pratico
-                echo -e "\n${YELLOW}Esecuzione test di accesso...${NC}"
-
-                # Crea file di test per ogni estensione
+                print_section "Test di Verifica"
                 test_dir="/var/www/html/test_extensions"
                 mkdir -p "$test_dir"
 
-                for ext in "${DENIED_EXTENSIONS[@]}"; do
-                    echo "Test content" > "$test_dir/test.$ext"
+                # Test file permessi
+                echo "Test allowed" > "$test_dir/test.html"
+                # Test file non permessi
+                echo "Test denied" > "$test_dir/test.php"
 
-                    if command_exists curl; then
-                        response=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost/test_extensions/test.$ext")
-                        if [ "$response" = "403" ]; then
-                            echo -e "${GREEN}✓ Accesso a .$ext correttamente negato${NC}"
-                        else
-                            echo -e "${RED}✗ Accesso a .$ext non bloccato (HTTP $response)${NC}"
-                        fi
+                if command_exists curl; then
+                    # Test file permesso
+                    response=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost/test_extensions/test.html")
+                    if [ "$response" = "200" ]; then
+                        echo -e "${GREEN}✓ Accesso a file HTML correttamente permesso${NC}"
                     fi
-                done
 
-                # Pulizia file di test
+                    # Test file non permesso
+                    response=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost/test_extensions/test.php")
+                    if [ "$response" = "403" ]; then
+                        echo -e "${GREEN}✓ Accesso a file PHP correttamente negato${NC}"
+                    fi
+                fi
+
+                # Pulizia
                 rm -rf "$test_dir"
-
             else
                 echo -e "${RED}✗ Errore durante il riavvio di Apache${NC}"
             fi
         else
             echo -e "${RED}✗ Errore nella configurazione di Apache${NC}"
             echo -e "${YELLOW}Ripristino del backup...${NC}"
-
-            # Ripristina dal backup
             cp -r "$backup_dir"/* "$APACHE_CONFIG_DIR/"
-
             systemctl restart httpd 2>/dev/null || systemctl restart apache2 2>/dev/null
             echo -e "${GREEN}Backup ripristinato${NC}"
         fi
-
     else
         echo -e "${YELLOW}Remediation annullata dall'utente${NC}"
     fi
@@ -235,16 +235,17 @@ fi
 print_section "Riepilogo Finale"
 echo "1. File di configurazione: $MAIN_CONFIG"
 echo "2. DocumentRoot controllato: $DOCUMENT_ROOT"
-echo "3. Estensioni bloccate:"
-for ext in "${DENIED_EXTENSIONS[@]}"; do
+echo "3. Estensioni permesse:"
+for ext in "${ALLOWED_EXTENSIONS[@]}"; do
     echo "   - .$ext"
 done
 if [ -d "$backup_dir" ]; then
     echo "4. Backup salvato in: $backup_dir"
 fi
 
-echo -e "\n${BLUE}Nota: La protezione delle estensioni file garantisce che:${NC}"
-echo -e "${BLUE}- File sensibili e di backup non siano accessibili via web${NC}"
-echo -e "${BLUE}- File di configurazione e log siano protetti${NC}"
-echo -e "${BLUE}- Script e file temporanei siano bloccati${NC}"
-echo -e "${BLUE}- Si migliori la sicurezza complessiva del server${NC}"
+echo -e "\n${BLUE}Nota: La nuova configurazione di sicurezza:${NC}"
+echo -e "${BLUE}- Blocca l'accesso a TUTTI i file per default${NC}"
+echo -e "${BLUE}- Permette solo le estensioni specificamente consentite${NC}"
+echo -e "${BLUE}- Blocca l'accesso a file nascosti (dot files)${NC}"
+echo -e "${BLUE}- Blocca l'accesso a file di backup e temporanei${NC}"
+echo -e "${BLUE}- Migliora significativamente la sicurezza del server web${NC}"
