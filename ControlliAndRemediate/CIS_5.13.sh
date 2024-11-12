@@ -6,6 +6,9 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
+declare -a missing_configs
+
+
 # Funzione per stampare messaggi con timestamp
 log_message() {
     echo -e "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
@@ -42,16 +45,17 @@ ALLOWED_EXTENSIONS=(
     "jpeg"
     "gif"
     "ico"
+    "pdf"
 )
 
 # Funzione per verificare la configurazione esistente
 check_existing_config() {
     local config_file="$1"
+#    local missing_configs=$2
     local has_deny_all=false
     local has_allow_specific=false
     local has_dot_files=false
     local has_backup_files=false
-    local missing_configs=()
 
     log_message "${YELLOW}Verifico la configurazione esistente in: $config_file${NC}"
 
@@ -106,12 +110,11 @@ check_existing_config() {
         missing_configs+=("all")
     fi
 
-    echo "${missing_configs[@]}"
 }
 
 # Funzione per implementare la configurazione mancante
 implement_missing_config() {
-    local missing_configs=("$@")
+#    local missing_configs=$1
     local need_restart=false
 
     # Backup della configurazione
@@ -127,8 +130,9 @@ implement_missing_config() {
     if [[ " ${missing_configs[@]} " =~ "all" ]] || [ ${#missing_configs[@]} -gt 0 ]; then
         ALLOWED_EXT_STRING=$(IFS="|"; echo "${ALLOWED_EXTENSIONS[*]}")
 
-        # Crea/aggiorna configurazione
-        cat > "$APACHE_CONFIG" << EOF
+# Crea/aggiorna configurazione
+cat >> "$APACHE_CONFIG" << EOF
+
 # Configurazione CIS 5.13 - Gestione estensioni file
 # Configurazione generata il $(date)
 
@@ -138,7 +142,7 @@ implement_missing_config() {
 </Files>
 
 # Permetti solo le estensioni specificate
-<FilesMatch "\.($ALLOWED_EXTENSIONS)$">
+<FilesMatch "\.($ALLOWED_EXT_STRING)$">
     Require all granted
 </FilesMatch>
 
@@ -151,7 +155,9 @@ implement_missing_config() {
 <FilesMatch "(~|\#|\%|\$)$">
     Require all denied
 </FilesMatch>
+
 EOF
+cp -f $APACHE_CONFIG /root/test
 
         need_restart=true
         log_message "${GREEN}Configurazione aggiornata${NC}"
@@ -193,7 +199,7 @@ EOF
 
 # Esegui la verifica
 log_message "${YELLOW}Inizio verifica configurazione CIS 5.13${NC}"
-missing_configs=($(check_existing_config "$APACHE_CONFIG"))
+check_existing_config "$APACHE_CONFIG"
 
 # Se ci sono configurazioni mancanti, chiedi conferma per l'implementazione
 if [ ${#missing_configs[@]} -gt 0 ]; then
