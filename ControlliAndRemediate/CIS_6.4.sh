@@ -227,12 +227,6 @@ if [ -d "$backup_dir" ]; then
     echo "3. Backup salvato in: $backup_dir"
 fi
 
-echo -e "\n${BLUE}Nota: La corretta configurazione della rotazione log garantisce che:${NC}"
-echo -e "${BLUE}- I log vengano ruotati regolarmente${NC}"
-echo -e "${BLUE}- Lo spazio su disco sia gestito efficacemente${NC}"
-echo -e "${BLUE}- I log storici siano compressi e conservati${NC}"
-echo -e "${BLUE}- Apache venga ricaricato correttamente dopo la rotazione${NC}"
-
 # Mostra prossima esecuzione logrotate
 if [ -f /etc/cron.daily/logrotate ]; then
     next_run=$(date -d "tomorrow 06:25" +"%Y-%m-%d %H:%M")
