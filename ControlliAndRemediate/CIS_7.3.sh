@@ -148,19 +148,19 @@ if [ ${#issues_found[@]} -gt 0 ]; then
             
             # Correggi permessi e proprietario della chiave
             echo -e "\n${YELLOW}Correzione permessi e proprietario della chiave...${NC}"
-            chmod 600 "$key_file"
+            chmod 0400 "$key_file"
             chown root:root "$key_file"
             
             # Correggi permessi directory
-            key_dir=$(dirname "$key_file")
-            chmod 700 "$key_dir"
-            chown root:root "$key_dir"
+            #key_dir=$(dirname "$key_file")
+            #chmod 700 "$key_dir"
+            #chown root:root "$key_dir"
             
             # Verifica se la chiave è valida
-            if ! openssl rsa -in "$key_file" -check -noout &>/dev/null; then
-                echo -e "${RED}✗ La chiave esistente non è valida. Potrebbe essere necessario generarne una nuova.${NC}"
-                echo -e "${YELLOW}Si consiglia di eseguire lo script di remediation del punto 7.2 per generare una nuova chiave.${NC}"
-            fi
+            #if ! openssl rsa -in "$key_file" -check -noout &>/dev/null; then
+            #    echo -e "${RED}✗ La chiave esistente non è valida. Potrebbe essere necessario generarne una nuova.${NC}"
+            #    echo -e "${YELLOW}Si consiglia di eseguire lo script di remediation del punto 7.2 per generare una nuova chiave.${NC}"
+            #fi
             
             # Verifica configurazione Apache
             echo -e "\n${YELLOW}Verifica configurazione Apache...${NC}"
@@ -201,7 +201,7 @@ if [ -d "$backup_dir" ]; then
 fi
 
 echo -e "\n${BLUE}Note sulla sicurezza delle chiavi private:${NC}"
-echo -e "${BLUE}- Le chiavi private devono avere permessi 600 (lettura/scrittura solo per root)${NC}"
+echo -e "${BLUE}- Le chiavi private devono avere permessi 0400 (lettura/scrittura solo per root)${NC}"
 echo -e "${BLUE}- Il proprietario deve essere root:root${NC}"
 echo -e "${BLUE}- La directory contenente le chiavi deve essere protetta${NC}"
 echo -e "${BLUE}- Backup sicuri devono essere mantenuti in luogo sicuro${NC}"
