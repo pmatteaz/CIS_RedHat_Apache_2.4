@@ -101,28 +101,6 @@ check_access_log_config "$MAIN_CONFIG"
 if [ ! -d "$LOG_DIR" ]; then
     echo -e "${RED}✗ Directory dei log non trovata: $LOG_DIR${NC}"
     issues_found+=("no_log_dir")
-else
-    # Verifica permessi directory
-    dir_perms=$(stat -c '%a' "$LOG_DIR")
-    dir_owner=$(stat -c '%U' "$LOG_DIR")
-    dir_group=$(stat -c '%G' "$LOG_DIR")
-    
-    if [ "$dir_perms" != "750" ]; then
-        echo -e "${RED}✗ Permessi directory log non corretti: $dir_perms (dovrebbe essere 750)${NC}"
-        issues_found+=("wrong_log_perms")
-    fi
-    
-    # Verifica access_log se esiste
-    if [ -f "$LOG_DIR/access_log" ]; then
-        file_perms=$(stat -c '%a' "$LOG_DIR/access_log")
-        file_owner=$(stat -c '%U' "$LOG_DIR/access_log")
-        file_group=$(stat -c '%G' "$LOG_DIR/access_log")
-        
-        if [ "$file_perms" != "640" ]; then
-            echo -e "${RED}✗ Permessi access_log non corretti: $file_perms (dovrebbe essere 640)${NC}"
-            issues_found+=("wrong_file_perms")
-        fi
-    fi
 fi
 
 # Se ci sono problemi, offri remediation
@@ -147,11 +125,6 @@ if [ ${#issues_found[@]} -gt 0 ]; then
             echo -e "\n${YELLOW}Creazione directory log...${NC}"
             mkdir -p "$LOG_DIR"
         fi
-        
-        # Imposta permessi corretti sulla directory log
-        echo -e "\n${YELLOW}Impostazione permessi directory log...${NC}"
-        chown root:"$APACHE_USER" "$LOG_DIR"
-        chmod 750 "$LOG_DIR"
         
         # Aggiorna la configurazione
         echo -e "\n${YELLOW}Aggiornamento configurazione log...${NC}"
