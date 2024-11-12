@@ -21,12 +21,10 @@ fi
 if [ -f /etc/redhat-release ]; then
     APACHE_CONFIG_DIR="/etc/httpd/"
     APACHE_CONFIG="/etc/httpd/conf/httpd.conf"
-    SECURITY_CONF="/etc/httpd/conf.d/security.conf"
     APACHE_SERVICE="httpd"
 elif [ -f /etc/debian_version ]; then
     APACHE_CONFIG_DIR="/etc/apache2/"
     APACHE_CONFIG="/etc/apache2/apache2.conf"
-    SECURITY_CONF="/etc/apache2/conf-available/security.conf"
     APACHE_SERVICE="apache2"
 else
     log_message "${RED}Distribuzione non supportata${NC}"
