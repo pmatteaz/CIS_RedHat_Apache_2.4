@@ -57,12 +57,12 @@ check_ssl_modules() {
     local found_ssl=false
     local found_nss=false
     local modules_output
-    
+
     echo "Controllo moduli SSL/NSS..."
-    
+
     # Ottieni lista moduli
     modules_output=$($APACHE_CMD -M 2>/dev/null || apache2ctl -M 2>/dev/null)
-    
+
     # Verifica SSL
     if echo "$modules_output" | grep -q "ssl_module"; then
         echo -e "${GREEN}✓ Modulo SSL trovato${NC}"
@@ -71,7 +71,7 @@ check_ssl_modules() {
         echo -e "${RED}✗ Modulo SSL non trovato${NC}"
         issues_found+=("no_ssl_module")
     fi
-    
+
     # Verifica NSS (solo per RedHat)
     if [ "$SYSTEM_TYPE" = "redhat" ]; then
         if echo "$modules_output" | grep -q "nss_module"; then
@@ -81,7 +81,7 @@ check_ssl_modules() {
             echo -e "${YELLOW}! Modulo NSS non trovato (opzionale)${NC}"
         fi
     fi
-    
+
     # Verifica OpenSSL
     if command_exists openssl; then
         echo -e "${GREEN}✓ OpenSSL installato${NC}"
@@ -89,7 +89,7 @@ check_ssl_modules() {
         echo -e "${RED}✗ OpenSSL non trovato${NC}"
         issues_found+=("no_openssl")
     fi
-    
+
     # Verifica configurazione SSL
     if [ "$SYSTEM_TYPE" = "redhat" ]; then
         if [ ! -f "$SSL_CONF_DIR/ssl.conf" ]; then
@@ -102,7 +102,7 @@ check_ssl_modules() {
             issues_found+=("no_ssl_config")
         fi
     fi
-    
+
     if [ ${#issues_found[@]} -eq 0 ]; then
         return 0
     fi
@@ -117,21 +117,21 @@ if [ ${#issues_found[@]} -gt 0 ]; then
     echo -e "\n${YELLOW}Sono stati trovati problemi con i moduli SSL/NSS.${NC}"
     echo -e "${YELLOW}Vuoi procedere con la remediation? (s/n)${NC}"
     read -r risposta
-    
+
     if [[ "$risposta" =~ ^[Ss]$ ]]; then
         print_section "Esecuzione Remediation"
-        
+
         # Backup delle configurazioni
         timestamp=$(date +%Y%m%d_%H%M%S)_CIS_7.1
         backup_dir="/root/apache_ssl_backup_$timestamp"
         mkdir -p "$backup_dir"
-        
+
         echo "Creazione backup in $backup_dir..."
         cp -r "$APACHE_CONFIG_DIR" "$backup_dir/"
-        
+
         # Installa i pacchetti necessari
         echo -e "\n${YELLOW}Installazione moduli SSL...${NC}"
-        
+
         if [ "$SYSTEM_TYPE" = "redhat" ]; then
             # Per sistemi RedHat
             yum install -y $SSL_PACKAGE $OPENSSL_PACKAGE
@@ -145,81 +145,35 @@ if [ ${#issues_found[@]} -gt 0 ]; then
             apt-get install -y $SSL_PACKAGE $OPENSSL_PACKAGE
             a2enmod ssl
         fi
-        
-        # Genera certificato SSL di default se necessario
-        if [ ! -f "/etc/ssl/certs/apache-selfsigned.crt" ]; then
-            echo -e "\n${YELLOW}Generazione certificato SSL di default...${NC}"
-            openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-                -keyout /etc/ssl/private/apache-selfsigned.key \
-                -out /etc/ssl/certs/apache-selfsigned.crt \
-                -subj "/C=XX/ST=State/L=City/O=Organization/CN=localhost"
-            chmod 600 /etc/ssl/private/apache-selfsigned.key
-        fi
-        
         # Configura SSL di base
         if [ "$SYSTEM_TYPE" = "redhat" ] && [ ! -f "$SSL_CONF_DIR/ssl.conf" ]; then
             echo -e "\n${YELLOW}Creazione configurazione SSL base...${NC}"
-            cat > "$SSL_CONF_DIR/ssl.conf" << EOL
+cat > "$SSL_CONF_DIR/ssl.conf" << EOL
 LoadModule ssl_module modules/mod_ssl.so
-Listen 443
-<VirtualHost *:443>
-    SSLEngine on
-    SSLCertificateFile /etc/ssl/certs/apache-selfsigned.crt
-    SSLCertificateKeyFile /etc/ssl/private/apache-selfsigned.key
-</VirtualHost>
 EOL
         fi
-        
+
         # Verifica la configurazione di Apache
         echo -e "\n${YELLOW}Verifica della configurazione di Apache...${NC}"
         if $APACHE_CMD -t 2>/dev/null || apache2ctl -t 2>/dev/null; then
             echo -e "${GREEN}✓ Configurazione di Apache valida${NC}"
-            
+
             # Riavvio di Apache
             echo -e "\n${YELLOW}Riavvio di Apache...${NC}"
             if systemctl restart $APACHE_CMD; then
                 echo -e "${GREEN}✓ Apache riavviato con successo${NC}"
-                
-                # Verifica finale
-                print_section "Verifica Finale"
-                
-                # Test SSL
-                echo -e "\n${YELLOW}Test connessione SSL...${NC}"
-                
-                if command_exists curl; then
-                    sleep 2  # Attendi che Apache sia completamente avviato
-                    if curl -k -s -o /dev/null -w "%{http_code}" https://localhost/ | grep -q "200\|403"; then
-                        echo -e "${GREEN}✓ Connessione SSL funzionante${NC}"
-                        
-                        # Test della cifratura
-                        cipher=$(curl -k -v https://localhost/ 2>&1 | grep "SSL connection using")
-                        echo -e "${GREEN}✓ Cifratura in uso: ${NC}$cipher"
-                    else
-                        echo -e "${RED}✗ Problemi con la connessione SSL${NC}"
-                    fi
-                else
-                    echo -e "${YELLOW}! curl non installato, impossibile testare SSL${NC}"
-                fi
-                
-                # Verifica moduli finali
-                if check_ssl_modules; then
-                    echo -e "\n${GREEN}✓ Moduli SSL/NSS configurati correttamente${NC}"
-                else
-                    echo -e "\n${RED}✗ Problemi nella configurazione finale dei moduli${NC}"
-                fi
-                
             else
                 echo -e "${RED}✗ Errore durante il riavvio di Apache${NC}"
             fi
         else
             echo -e "${RED}✗ Errore nella configurazione di Apache${NC}"
             echo -e "${YELLOW}Ripristino del backup...${NC}"
-            
+
             cp -r "$backup_dir"/* "$APACHE_CONFIG_DIR/"
             systemctl restart $APACHE_CMD
             echo -e "${GREEN}Backup ripristinato${NC}"
         fi
-        
+
     else
         echo -e "${YELLOW}Remediation annullata dall'utente${NC}"
     fi
@@ -233,12 +187,6 @@ echo "1. Directory configurazione SSL: $SSL_CONF_DIR"
 if [ -d "$backup_dir" ]; then
     echo "2. Backup salvato in: $backup_dir"
 fi
-
-echo -e "\n${BLUE}Nota: I moduli SSL/NSS correttamente configurati garantiscono:${NC}"
-echo -e "${BLUE}- Comunicazioni cifrate tra client e server${NC}"
-echo -e "${BLUE}- Supporto per HTTPS${NC}"
-echo -e "${BLUE}- Protezione dei dati in transito${NC}"
-echo -e "${BLUE}- Conformità agli standard di sicurezza${NC}"
 
 # Mostra versione OpenSSL
 if command_exists openssl; then
