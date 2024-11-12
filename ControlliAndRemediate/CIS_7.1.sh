@@ -30,7 +30,7 @@ if [ -f /etc/redhat-release ]; then
     SYSTEM_TYPE="redhat"
     APACHE_CMD="httpd"
     APACHE_CONFIG_DIR="/etc/httpd"
-    SSL_CONF_DIR="/etc/httpd/conf.d"
+    SSL_CONF_DIR="/etc/httpd/conf.modules.d"
     SSL_PACKAGE="mod_ssl"
     NSS_PACKAGE="mod_nss"
     OPENSSL_PACKAGE="openssl"
@@ -81,15 +81,15 @@ check_ssl_modules() {
             echo -e "${YELLOW}! Modulo NSS non trovato (opzionale)${NC}"
         fi
     fi
-    
+
     # Verifica configurazione SSL
     if [ "$SYSTEM_TYPE" = "redhat" ]; then
-        if [ ! -f "$SSL_CONF_DIR/ssl.conf" ]; then
+        if [ ! -f "$SSL_CONF_DIR/00-ssl.conf" ]; then
             echo -e "${RED}✗ File di configurazione SSL non trovato${NC}"
             issues_found+=("no_ssl_config")
         fi
     else
-        if [ ! -f "$SSL_CONF_DIR/ssl.conf" ] && [ ! -L "$SSL_CONF_DIR/ssl.load" ]; then
+        if [ ! -f "$SSL_CONF_DIR/00-ssl.conf" ] && [ ! -L "$SSL_CONF_DIR/ssl.load" ]; then
             echo -e "${RED}✗ Configurazione SSL non trovata${NC}"
             issues_found+=("no_ssl_config")
         fi
@@ -126,7 +126,7 @@ if [ ${#issues_found[@]} -gt 0 ]; then
 
         if [ "$SYSTEM_TYPE" = "redhat" ]; then
             # Per sistemi RedHat
-            yum install -y $SSL_PACKAGE 
+            yum install -y $SSL_PACKAGE
             # Installa NSS se richiesto
             if [ ${#issues_found[@]} -gt 1 ]; then
                 yum install -y $NSS_PACKAGE
@@ -134,13 +134,13 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         else
             # Per sistemi Debian/Ubuntu
             apt-get update
-            apt-get install -y $SSL_PACKAGE 
+            apt-get install -y $SSL_PACKAGE
             a2enmod ssl
         fi
         # Configura SSL di base
-        if [ "$SYSTEM_TYPE" = "redhat" ] && [ ! -f "$SSL_CONF_DIR/ssl.conf" ]; then
+        if [ "$SYSTEM_TYPE" = "redhat" ] && [ ! -f "$SSL_CONF_DIR/00-ssl.conf" ]; then
             echo -e "\n${YELLOW}Creazione configurazione SSL base...${NC}"
-cat > "$SSL_CONF_DIR/ssl.conf" << EOL
+cat > "$SSL_CONF_DIR/00-ssl.conf" << EOL
 LoadModule ssl_module modules/mod_ssl.so
 EOL
         fi
@@ -179,4 +179,3 @@ echo "1. Directory configurazione SSL: $SSL_CONF_DIR"
 if [ -d "$backup_dir" ]; then
     echo "2. Backup salvato in: $backup_dir"
 fi
-
