@@ -69,7 +69,7 @@ check_existing_config() {
         if grep -q '<FilesMatch.*\.\(.*\)$' "$config_file"; then
             has_allow_specific=true
             log_message "${GREEN}✓ Trovata configurazione per estensioni permesse${NC}"
-            
+
             # Verifica se tutte le estensioni necessarie sono presenti
             for ext in "${ALLOWED_EXTENSIONS[@]}"; do
                 if ! grep -q "$ext" "$config_file"; then
@@ -120,15 +120,15 @@ implement_missing_config() {
         mkdir -p "$backup_dir"
 
         echo "Creazione backup della configurazione in $backup_dir..."
-        cp "$APACHE_CONF" "$backup_dir/httpd.conf"
+        cp "$APACHE_CONFIG" "$backup_dir/httpd.conf"
         log_message "${GREEN}Backup creato sotto: $backup_dir/"
 
     # Se manca tutto o se ci sono configurazioni mancanti, crea/aggiorna il file
     if [[ " ${missing_configs[@]} " =~ "all" ]] || [ ${#missing_configs[@]} -gt 0 ]; then
         ALLOWED_EXT_STRING=$(IFS="|"; echo "${ALLOWED_EXTENSIONS[*]}")
-        
+
         # Crea/aggiorna configurazione
-        cat > "$APACHE_CONF" << EOF
+        cat > "$APACHE_CONFIG" << EOF
 # Configurazione CIS 5.13 - Gestione estensioni file
 # Configurazione generata il $(date)
 
@@ -168,14 +168,14 @@ EOF
         if $APACHE_SERVICE -t > /dev/null 2>&1; then
             log_message "${GREEN}Configurazione valida${NC}"
             log_message "${YELLOW}Riavvio Apache...${NC}"
-            
+
             if systemctl restart $APACHE_SERVICE > /dev/null 2>&1; then
                 log_message "${GREEN}Apache riavviato con successo${NC}"
             else
                 log_message "${RED}Errore nel riavvio di Apache${NC}"
                 if [ -f "$backup_dir/httpd.conf" ]; then
                     log_message "${YELLOW}Ripristino backup...${NC}"
-                    mv "$backup_dir/httpd.conf" "$APACHE_CONF"
+                    mv "$backup_dir/httpd.conf" "$APACHE_CONFIG"
                     systemctl restart $APACHE_SERVICE > /dev/null 2>&1
                 fi
                 exit 1
@@ -184,7 +184,7 @@ EOF
             log_message "${RED}Errore nella configurazione${NC}"
             if [ -f "$backup_dir/httpd.conf" ]; then
                 log_message "${YELLOW}Ripristino backup...${NC}"
-                mv "$backup_dir/httpd.conf" "$APACHE_CONF"
+                mv "$backup_dir/httpd.conf" "$APACHE_CONFIG"
             fi
             exit 1
         fi
@@ -193,7 +193,7 @@ EOF
 
 # Esegui la verifica
 log_message "${YELLOW}Inizio verifica configurazione CIS 5.13${NC}"
-missing_configs=($(check_existing_config "$APACHE_CONF"))
+missing_configs=($(check_existing_config "$APACHE_CONFIG"))
 
 # Se ci sono configurazioni mancanti, chiedi conferma per l'implementazione
 if [ ${#missing_configs[@]} -gt 0 ]; then
@@ -212,7 +212,7 @@ fi
 
 # Mostra riepilogo finale
 echo -e "\n${YELLOW}Riepilogo Configurazione:${NC}"
-echo "1. File di configurazione: $APACHE_CONF"
+echo "1. File di configurazione: $APACHE_CONFIG"
 echo "2. Estensioni permesse:"
 for ext in "${ALLOWED_EXTENSIONS[@]}"; do
     echo "   - .$ext"
