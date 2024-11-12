@@ -80,8 +80,8 @@ check_private_key() {
     
     # Verifica permessi
     local perms=$(stat -c "%a" "$key_file")
-    if [ "$perms" != "600" ]; then
-        echo -e "${RED}✗ Permessi chiave privata non corretti (attuali: $perms, richiesti: 600)${NC}"
+    if [ "$perms" != "400" ]; then
+        echo -e "${RED}✗ Permessi chiave privata non corretti (attuali: $perms, richiesti: 400)${NC}"
         issues_found+=("wrong_permissions")
     else
         echo -e "${GREEN}✓ Permessi chiave privata corretti${NC}"
