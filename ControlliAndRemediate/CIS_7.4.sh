@@ -76,7 +76,7 @@ check_tls_protocols() {
         if echo "$protocol_line" | grep -qE "TLSv1\.0|TLSv1\.1|SSLv2|SSLv3|[^.]TLSv1[^.]"; then
             echo -e "${RED}✗ Trovati protocolli non sicuri nella configurazione${NC}"
             issues_found+=("insecure_protocols")
-        elif echo "$protocol_line" | grep -qE "all"; then
+        elif echo "$protocol_line" | grep -qE " all"; then
             echo -e "${RED}✗ Configurazione 'all' potrebbe includere protocolli non sicuri${NC}"
             issues_found+=("all_protocols")
         else
