@@ -59,9 +59,9 @@ get_apache_version() {
 check_updates() {
     local updates_available=false
     local update_output
-    
+
     echo "Controllo aggiornamenti disponibili..."
-    
+
     if [ "$SYSTEM_TYPE" = "redhat" ]; then
         update_output=$(yum check-update $PACKAGE_NAME 2>/dev/null)
         if [ $? -eq 100 ]; then
@@ -74,7 +74,7 @@ check_updates() {
             updates_available=true
         fi
     fi
-    
+
     if [ "$updates_available" = true ]; then
         echo -e "${RED}✗ Aggiornamenti disponibili per Apache${NC}"
         echo "$update_output"
@@ -94,82 +94,82 @@ echo "Versione Apache attuale: $CURRENT_VERSION"
 check_updates
 
 # Verifica la configurazione del sistema di aggiornamenti automatici
-if [ "$SYSTEM_TYPE" = "redhat" ]; then
-    if ! rpm -q yum-cron >/dev/null 2>&1; then
-        echo -e "${YELLOW}! yum-cron non installato per gli aggiornamenti automatici${NC}"
-        issues_found+=("no_auto_updates")
-    fi
-else
-    if ! dpkg -l unattended-upgrades >/dev/null 2>&1; then
-        echo -e "${YELLOW}! unattended-upgrades non installato per gli aggiornamenti automatici${NC}"
-        issues_found+=("no_auto_updates")
-    fi
-fi
+#if [ "$SYSTEM_TYPE" = "redhat" ]; then
+#    if ! rpm -q yum-cron >/dev/null 2>&1; then
+#        echo -e "${YELLOW}! yum-cron non installato per gli aggiornamenti automatici${NC}"
+#        issues_found+=("no_auto_updates")
+#    fi
+#else
+#    if ! dpkg -l unattended-upgrades >/dev/null 2>&1; then
+#        echo -e "${YELLOW}! unattended-upgrades non installato per gli aggiornamenti automatici${NC}"
+#        issues_found+=("no_auto_updates")
+#    fi
+#fi
 
 # Se ci sono problemi, offri remediation
 if [ ${#issues_found[@]} -gt 0 ]; then
     echo -e "\n${YELLOW}Sono stati trovati problemi con gli aggiornamenti di Apache.${NC}"
     echo -e "${YELLOW}Vuoi procedere con la remediation? (s/n)${NC}"
     read -r risposta
-    
+
     if [[ "$risposta" =~ ^[Ss]$ ]]; then
         print_section "Esecuzione Remediation"
-        
+
         # Backup della configurazione Apache
         timestamp=$(date +%Y%m%d_%H%M%S)_CIS_6.5
         backup_dir="/root/apache_update_backup_$timestamp"
         mkdir -p "$backup_dir"
-        
+
         # Backup delle configurazioni principali
         if [ "$SYSTEM_TYPE" = "redhat" ]; then
             cp -r /etc/httpd "$backup_dir/"
         else
             cp -r /etc/apache2 "$backup_dir/"
         fi
-        
+
         echo "Backup creato in: $backup_dir"
-        
+
         # Installa sistema di aggiornamenti automatici se mancante
-        if [[ " ${issues_found[@]} " =~ "no_auto_updates" ]]; then
-            echo -e "\n${YELLOW}Installazione sistema aggiornamenti automatici...${NC}"
-            if [ "$SYSTEM_TYPE" = "redhat" ]; then
-                yum install -y yum-cron
-                # Configura yum-cron per gli aggiornamenti di sicurezza
-                sed -i 's/^apply_updates = no/apply_updates = yes/' /etc/yum/yum-cron.conf
-                systemctl enable yum-cron
-                systemctl start yum-cron
-            else
-                apt-get install -y unattended-upgrades
-                dpkg-reconfigure -plow unattended-upgrades
-            fi
-        fi
-        
+        #if [[ " ${issues_found[@]} " =~ "no_auto_updates" ]]; then
+        #    echo -e "\n${YELLOW}Installazione sistema aggiornamenti automatici...${NC}"
+        #    if [ "$SYSTEM_TYPE" = "redhat" ]; then
+        #        yum install -y yum-cron
+        #        # Configura yum-cron per gli aggiornamenti di sicurezza
+        #        sed -i 's/^apply_updates = no/apply_updates = yes/' /etc/yum/yum-cron.conf
+        #        systemctl enable yum-cron
+        #        systemctl start yum-cron
+        #    else
+        #        apt-get install -y unattended-upgrades
+        #        dpkg-reconfigure -plow unattended-upgrades
+        #    fi
+        #fi
+
         # Aggiorna Apache
         if [[ " ${issues_found[@]} " =~ "updates_available" ]]; then
             echo -e "\n${YELLOW}Aggiornamento Apache...${NC}"
-            
+
             # Stoppa Apache
             echo "Arresto Apache..."
             systemctl stop $PACKAGE_NAME
-            
+
             # Esegui l'aggiornamento
             if eval "$UPDATE_CMD"; then
                 echo -e "${GREEN}✓ Aggiornamento completato con successo${NC}"
-                
+
                 # Verifica la nuova versione
                 NEW_VERSION=$(get_apache_version)
                 echo "Nuova versione Apache: $NEW_VERSION"
-                
+
                 # Verifica la configurazione
                 echo -e "\n${YELLOW}Verifica della configurazione di Apache...${NC}"
                 if httpd -t 2>/dev/null || apache2ctl -t 2>/dev/null; then
                     echo -e "${GREEN}✓ Configurazione di Apache valida${NC}"
-                    
+
                     # Riavvio di Apache
                     echo -e "\n${YELLOW}Riavvio di Apache...${NC}"
                     if systemctl restart $PACKAGE_NAME; then
                         echo -e "${GREEN}✓ Apache riavviato con successo${NC}"
-                        
+
                         # Test funzionale
                         echo -e "\n${YELLOW}Esecuzione test funzionale...${NC}"
                         if curl -s --head http://localhost/ | grep "200 OK" >/dev/null; then
@@ -205,7 +205,7 @@ if [ ${#issues_found[@]} -gt 0 ]; then
                 echo -e "${RED}✗ Errore durante l'aggiornamento${NC}"
             fi
         fi
-        
+
     else
         echo -e "${YELLOW}Remediation annullata dall'utente${NC}"
     fi
@@ -224,9 +224,3 @@ fi
 if [ -d "$backup_dir" ]; then
     echo "3. Backup salvato in: $backup_dir"
 fi
-
-echo -e "\n${BLUE}Nota: Il mantenimento di Apache aggiornato garantisce che:${NC}"
-echo -e "${BLUE}- Tutte le patch di sicurezza siano applicate${NC}"
-echo -e "${BLUE}- Le vulnerabilità note siano corrette${NC}"
-echo -e "${BLUE}- Il sistema sia protetto dalle minacce più recenti${NC}"
-echo -e "${BLUE}- Gli aggiornamenti automatici siano configurati correttamente${NC}"
