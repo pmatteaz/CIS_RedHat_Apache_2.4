@@ -6,25 +6,32 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
+# Funzione per stampare messaggi con timestamp
+log_message() {
+    echo -e "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+}
+
 # Verifica se Apache è installato
 if ! command -v httpd >/dev/null 2>&1 && ! command -v apache2 >/dev/null 2>&1; then
-    echo -e "${RED}Apache non è installato${NC}"
+    log_message "${RED}Apache non è installato${NC}"
     exit 1
 fi
 
 # Determina la distribuzione e i percorsi
 if [ -f /etc/redhat-release ]; then
+    APACHE_CONFIG_DIR="/etc/httpd/conf"
     APACHE_CONFIG="/etc/httpd/conf/httpd.conf"
-    SECURITY_CONF="/etc/httpd/conf.d/security.conf"
+    APACHE_SERVICE="httpd"
 elif [ -f /etc/debian_version ]; then
+    APACHE_CONFIG_DIR="/etc/apache2/"
     APACHE_CONFIG="/etc/apache2/apache2.conf"
-    SECURITY_CONF="/etc/apache2/conf-available/security.conf"
+    APACHE_SERVICE="apache2"
 else
-    echo -e "${RED}Distribuzione non supportata${NC}"
+    log_message "${RED}Distribuzione non supportata${NC}"
     exit 1
 fi
 
-# Lista delle estensioni consentite secondo CIS
+# Lista delle estensioni consentite
 ALLOWED_EXTENSIONS=(
     "html"
     "htm"
@@ -37,22 +44,94 @@ ALLOWED_EXTENSIONS=(
     "ico"
 )
 
-# Creazione della configurazione
-echo -e "${YELLOW}Creazione configurazione di sicurezza per le estensioni...${NC}"
+# Funzione per verificare la configurazione esistente
+check_existing_config() {
+    local config_file="$1"
+    local has_deny_all=false
+    local has_allow_specific=false
+    local has_dot_files=false
+    local has_backup_files=false
+    local missing_configs=()
 
-# Crea backup
-BACKUP_DATE=$(date +%Y%m%d_%H%M%S)
-if [ -f "$SECURITY_CONF" ]; then
-    cp "$SECURITY_CONF" "${SECURITY_CONF}.${BACKUP_DATE}.bak"
-    echo "Backup creato: ${SECURITY_CONF}.${BACKUP_DATE}.bak"
-fi
+    log_message "${YELLOW}Verifico la configurazione esistente in: $config_file${NC}"
 
-# Genera la stringa delle estensioni permesse
-ALLOWED_EXT_STRING=$(IFS="|"; echo "${ALLOWED_EXTENSIONS[*]}")
+    if [ -f "$config_file" ]; then
+        # Verifica deny all
+        if grep -q '<Files "\*">' "$config_file" && grep -q 'Require all denied' "$config_file"; then
+            has_deny_all=true
+            log_message "${GREEN}✓ Trovata configurazione 'deny all'${NC}"
+        else
+            missing_configs+=("deny_all")
+            log_message "${RED}✗ Manca configurazione 'deny all'${NC}"
+        fi
 
-# Crea la nuova configurazione
-cat > "$SECURITY_CONF" << EOF
+        # Verifica allow specific
+        if grep -q '<FilesMatch.*\.\(.*\)$' "$config_file"; then
+            has_allow_specific=true
+            log_message "${GREEN}✓ Trovata configurazione per estensioni permesse${NC}"
+            
+            # Verifica se tutte le estensioni necessarie sono presenti
+            for ext in "${ALLOWED_EXTENSIONS[@]}"; do
+                if ! grep -q "$ext" "$config_file"; then
+                    has_allow_specific=false
+                    missing_configs+=("allowed_extensions")
+                    log_message "${RED}✗ Manca estensione .$ext nella configurazione${NC}"
+                    break
+                fi
+            done
+        else
+            missing_configs+=("allowed_extensions")
+            log_message "${RED}✗ Manca configurazione per estensioni permesse${NC}"
+        fi
+
+        # Verifica blocco dot files
+        if grep -q '<FilesMatch "\^\\.">' "$config_file" || grep -q '<FilesMatch "^\.">' "$config_file"; then
+            has_dot_files=true
+            log_message "${GREEN}✓ Trovato blocco per dot files${NC}"
+        else
+            missing_configs+=("dot_files")
+            log_message "${RED}✗ Manca blocco per dot files${NC}"
+        fi
+
+        # Verifica blocco file di backup
+        if grep -q '<FilesMatch.*\(~\|\\#\|%\|\$\)' "$config_file"; then
+            has_backup_files=true
+            log_message "${GREEN}✓ Trovato blocco per file di backup${NC}"
+        else
+            missing_configs+=("backup_files")
+            log_message "${RED}✗ Manca blocco per file di backup${NC}"
+        fi
+    else
+        log_message "${RED}File di configurazione non trovato${NC}"
+        missing_configs+=("all")
+    fi
+
+    echo "${missing_configs[@]}"
+}
+
+# Funzione per implementare la configurazione mancante
+implement_missing_config() {
+    local missing_configs=("$@")
+    local need_restart=false
+
+    # Backup della configurazione
+        timestamp=$(date +%Y%m%d_%H%M%S)_CIS_3.8
+        backup_dir="/root/apache_coredump_backup_$timestamp"
+        mkdir -p "$backup_dir"
+
+        echo "Creazione backup della configurazione in $backup_dir..."
+        cp "$APACHE_CONF" "$backup_dir/httpd.conf"
+        log_message "${GREEN}Backup creato sotto: $backup_dir/"
+
+    # Se manca tutto o se ci sono configurazioni mancanti, crea/aggiorna il file
+    if [[ " ${missing_configs[@]} " =~ "all" ]] || [ ${#missing_configs[@]} -gt 0 ]; then
+        ALLOWED_EXT_STRING=$(IFS="|"; echo "${ALLOWED_EXTENSIONS[*]}")
+        
+        # Crea/aggiorna configurazione
+        cat > "$APACHE_CONF" << EOF
 # Configurazione CIS 5.13 - Gestione estensioni file
+# Configurazione generata il $(date)
+
 # Nega accesso a tutti i file per default
 <Files "*">
     Require all denied
@@ -63,7 +142,7 @@ cat > "$SECURITY_CONF" << EOF
     Require all granted
 </FilesMatch>
 
-# Blocca accesso a file nascosti e di sistema
+# Blocca accesso a file nascosti
 <FilesMatch "^\.">
     Require all denied
 </FilesMatch>
@@ -74,50 +153,70 @@ cat > "$SECURITY_CONF" << EOF
 </FilesMatch>
 EOF
 
-# Se è Debian/Ubuntu, abilita la configurazione
-if [ -f /etc/debian_version ]; then
-    if ! a2enconf security > /dev/null 2>&1; then
-        echo -e "${RED}Errore nell'abilitare la configurazione di sicurezza${NC}"
-        exit 1
+        need_restart=true
+        log_message "${GREEN}Configurazione aggiornata${NC}"
     fi
-fi
 
-# Verifica la configurazione
-echo -e "${YELLOW}Verifica della configurazione Apache...${NC}"
-if apache2ctl -t > /dev/null 2>&1 || httpd -t > /dev/null 2>&1; then
-    echo -e "${GREEN}Configurazione Apache valida${NC}"
-    
-    # Riavvia Apache
-    echo -e "${YELLOW}Riavvio Apache...${NC}"
-    if systemctl restart apache2 > /dev/null 2>&1 || systemctl restart httpd > /dev/null 2>&1; then
-        echo -e "${GREEN}Apache riavviato con successo${NC}"
-    else
-        echo -e "${RED}Errore nel riavvio di Apache${NC}"
-        echo -e "${YELLOW}Ripristino backup...${NC}"
-        if [ -f "${SECURITY_CONF}.${BACKUP_DATE}.bak" ]; then
-            mv "${SECURITY_CONF}.${BACKUP_DATE}.bak" "$SECURITY_CONF"
-            systemctl restart apache2 > /dev/null 2>&1 || systemctl restart httpd > /dev/null 2>&1
+    # Per Debian/Ubuntu, abilita la configurazione
+    if [ "$APACHE_SERVICE" = "apache2" ]; then
+        a2enconf security > /dev/null 2>&1
+    fi
+
+    # Verifica e riavvia se necessario
+    if [ "$need_restart" = true ]; then
+        log_message "${YELLOW}Verifica configurazione Apache...${NC}"
+        if $APACHE_SERVICE -t > /dev/null 2>&1; then
+            log_message "${GREEN}Configurazione valida${NC}"
+            log_message "${YELLOW}Riavvio Apache...${NC}"
+            
+            if systemctl restart $APACHE_SERVICE > /dev/null 2>&1; then
+                log_message "${GREEN}Apache riavviato con successo${NC}"
+            else
+                log_message "${RED}Errore nel riavvio di Apache${NC}"
+                if [ -f "$backup_dir/httpd.conf" ]; then
+                    log_message "${YELLOW}Ripristino backup...${NC}"
+                    mv "$backup_dir/httpd.conf" "$APACHE_CONF"
+                    systemctl restart $APACHE_SERVICE > /dev/null 2>&1
+                fi
+                exit 1
+            fi
+        else
+            log_message "${RED}Errore nella configurazione${NC}"
+            if [ -f "$backup_dir/httpd.conf" ]; then
+                log_message "${YELLOW}Ripristino backup...${NC}"
+                mv "$backup_dir/httpd.conf" "$APACHE_CONF"
+            fi
+            exit 1
         fi
-        exit 1
+    fi
+}
+
+# Esegui la verifica
+log_message "${YELLOW}Inizio verifica configurazione CIS 5.13${NC}"
+missing_configs=($(check_existing_config "$APACHE_CONF"))
+
+# Se ci sono configurazioni mancanti, chiedi conferma per l'implementazione
+if [ ${#missing_configs[@]} -gt 0 ]; then
+    echo -e "\n${YELLOW}Sono state trovate configurazioni mancanti o incomplete.${NC}"
+    read -p "Vuoi implementare le configurazioni mancanti? (s/n) " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Ss]$ ]]; then
+        implement_missing_config "${missing_configs[@]}"
+        log_message "${GREEN}Implementazione completata${NC}"
+    else
+        log_message "${YELLOW}Implementazione annullata dall'utente${NC}"
     fi
 else
-    echo -e "${RED}Errore nella configurazione Apache${NC}"
-    echo -e "${YELLOW}Ripristino backup...${NC}"
-    if [ -f "${SECURITY_CONF}.${BACKUP_DATE}.bak" ]; then
-        mv "${SECURITY_CONF}.${BACKUP_DATE}.bak" "$SECURITY_CONF"
-    fi
-    exit 1
+    log_message "${GREEN}Tutte le configurazioni necessarie sono già presenti e corrette${NC}"
 fi
 
-echo -e "\n${GREEN}Configurazione completata con successo${NC}"
-echo -e "\nEstensioni permesse:"
+# Mostra riepilogo finale
+echo -e "\n${YELLOW}Riepilogo Configurazione:${NC}"
+echo "1. File di configurazione: $APACHE_CONF"
+echo "2. Estensioni permesse:"
 for ext in "${ALLOWED_EXTENSIONS[@]}"; do
-    echo "- .$ext"
+    echo "   - .$ext"
 done
-
-echo -e "\n${YELLOW}Note:${NC}"
-echo "1. Tutte le altre estensioni sono ora bloccate"
-echo "2. I file nascosti (dot files) sono bloccati"
-echo "3. I file di backup e temporanei sono bloccati"
-echo "4. Configurazione salvata in: $SECURITY_CONF"
-echo "5. Backup salvato in: ${SECURITY_CONF}.${BACKUP_DATE}.bak"
+if [ -f "${backup_dir}/httpd.conf" ]; then
+    echo "3. Backup: ${backup_dir}/httpd.conf"
+fi
