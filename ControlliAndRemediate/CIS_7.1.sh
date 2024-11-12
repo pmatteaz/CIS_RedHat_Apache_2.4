@@ -81,15 +81,7 @@ check_ssl_modules() {
             echo -e "${YELLOW}! Modulo NSS non trovato (opzionale)${NC}"
         fi
     fi
-
-    # Verifica OpenSSL
-    if command_exists openssl; then
-        echo -e "${GREEN}✓ OpenSSL installato${NC}"
-    else
-        echo -e "${RED}✗ OpenSSL non trovato${NC}"
-        issues_found+=("no_openssl")
-    fi
-
+    
     # Verifica configurazione SSL
     if [ "$SYSTEM_TYPE" = "redhat" ]; then
         if [ ! -f "$SSL_CONF_DIR/ssl.conf" ]; then
@@ -134,7 +126,7 @@ if [ ${#issues_found[@]} -gt 0 ]; then
 
         if [ "$SYSTEM_TYPE" = "redhat" ]; then
             # Per sistemi RedHat
-            yum install -y $SSL_PACKAGE $OPENSSL_PACKAGE
+            yum install -y $SSL_PACKAGE 
             # Installa NSS se richiesto
             if [ ${#issues_found[@]} -gt 1 ]; then
                 yum install -y $NSS_PACKAGE
@@ -142,7 +134,7 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         else
             # Per sistemi Debian/Ubuntu
             apt-get update
-            apt-get install -y $SSL_PACKAGE $OPENSSL_PACKAGE
+            apt-get install -y $SSL_PACKAGE 
             a2enmod ssl
         fi
         # Configura SSL di base
@@ -188,8 +180,3 @@ if [ -d "$backup_dir" ]; then
     echo "2. Backup salvato in: $backup_dir"
 fi
 
-# Mostra versione OpenSSL
-if command_exists openssl; then
-    echo -e "\n${BLUE}Versione OpenSSL:${NC}"
-    openssl version
-fi
