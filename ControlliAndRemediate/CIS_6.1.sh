@@ -209,9 +209,3 @@ echo "2. Directory log: $LOG_DIR"
 if [ -d "$backup_dir" ]; then
     echo "3. Backup salvato in: $backup_dir"
 fi
-
-echo -e "\n${BLUE}Nota: La corretta configurazione dei log garantisce che:${NC}"
-echo -e "${BLUE}- Gli errori vengano registrati con il livello appropriato${NC}"
-echo -e "${BLUE}- I file di log siano accessibili solo agli utenti autorizzati${NC}"
-echo -e "${BLUE}- Le informazioni di debug e gli errori siano tracciabili${NC}"
-echo -e "${BLUE}- I log siano protetti e conservati correttamente${NC}"
