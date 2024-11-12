@@ -138,7 +138,7 @@ implement_missing_config() {
 </Files>
 
 # Permetti solo le estensioni specificate
-<FilesMatch "\.($ALLOWED_EXT_STRING)$">
+<FilesMatch "\.($ALLOWED_EXTENSIONS)$">
     Require all granted
 </FilesMatch>
 
