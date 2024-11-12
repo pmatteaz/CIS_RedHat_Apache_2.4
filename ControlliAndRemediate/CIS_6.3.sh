@@ -242,8 +242,4 @@ if [ -d "$backup_dir" ]; then
     echo "3. Backup salvato in: $backup_dir"
 fi
 
-echo -e "\n${BLUE}Nota: La corretta configurazione dei log di accesso garantisce che:${NC}"
-echo -e "${BLUE}- Tutte le richieste siano registrate con dettagli sufficienti${NC}"
-echo -e "${BLUE}- I log siano protetti da accessi non autorizzati${NC}"
-echo -e "${BLUE}- Si possa tracciare l'attività degli utenti${NC}"
-echo -e "${BLUE}- Si possano identificare potenziali problemi di sicurezza${NC}"
+
