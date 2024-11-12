@@ -241,8 +241,4 @@ if [ -d "$backup_dir" ]; then
     echo "4. Backup salvato in: $backup_dir"
 fi
 
-echo -e "\n${BLUE}Nota: La configurazione syslog garantisce che:${NC}"
-echo -e "${BLUE}- I log di Apache siano gestiti centralmente${NC}"
-echo -e "${BLUE}- I log siano protetti e conservati in modo sicuro${NC}"
-echo -e "${BLUE}- Si possa implementare una rotazione dei log efficiente${NC}"
-echo -e "${BLUE}- I log siano facilmente integrabili con strumenti di monitoraggio${NC}"
+
