@@ -46,19 +46,20 @@ fi
 # Array per memorizzare i problemi trovati
 declare -a issues_found=()
 
+# Array dei file da controllare
+declare -a config_files=("$APACHE_CONF" "$SECURITY_CONF")
+
+
 print_section "Verifica Configurazione ServerSignature"
 
 # Funzione per verificare la configurazione ServerSignature
 check_server_signature() {
     echo "Controllo configurazione ServerSignature..."
-    
+
     local server_signature_found=false
     local correct_value=false
     local config_file=""
-    
-    # Array dei file da controllare
-    declare -a config_files=("$APACHE_CONF" "$SECURITY_CONF")
-    
+
     # Controlla ogni file di configurazione
     for conf_file in "${config_files[@]}"; do
         if [ -f "$conf_file" ]; then
@@ -66,10 +67,10 @@ check_server_signature() {
                 server_signature_found=true
                 config_file="$conf_file"
                 echo -e "${BLUE}ServerSignature trovato in: ${NC}$conf_file"
-                
+
                 local current_value=$(grep "^[[:space:]]*ServerSignature" "$conf_file" | awk '{print $2}')
                 echo -e "${BLUE}Valore attuale: ${NC}$current_value"
-                
+
                 if [[ "${current_value,,}" == "off" ]]; then
                     correct_value=true
                     echo -e "${GREEN}✓ ServerSignature è correttamente disabilitato${NC}"
@@ -80,12 +81,12 @@ check_server_signature() {
             fi
         fi
     done
-    
+
     if ! $server_signature_found; then
         echo -e "${RED}✗ ServerSignature non configurato${NC}"
         issues_found+=("no_server_signature")
     fi
-    
+
     # Verifica pagine di errore per firme del server
     echo -e "\n${BLUE}Verifica pagine di errore...${NC}"
     if [ -d "$ERROR_PAGES_DIR" ]; then
@@ -96,11 +97,11 @@ check_server_signature() {
             echo -e "${GREEN}✓ Nessuna firma del server trovata nelle pagine di errore${NC}"
         fi
     fi
-    
+
     # Test di una richiesta 404 per verificare la firma del server
     if command_exists curl; then
         echo -e "\n${BLUE}Test risposta 404...${NC}"
-        local error_page=$(curl -s http://localhost/nonexistent 2>/dev/null)
+        local error_page=$(curl -k https://localhost/nonexistent 2>/dev/null)
         if echo "$error_page" | grep -qi "apache" || echo "$error_page" | grep -qi "server at"; then
             echo -e "${RED}✗ Firma del server presente nelle risposte di errore${NC}"
             issues_found+=("error_response_signature")
@@ -108,7 +109,7 @@ check_server_signature() {
             echo -e "${GREEN}✓ Nessuna firma del server nelle risposte di errore${NC}"
         fi
     fi
-    
+
     if [ ${#issues_found[@]} -eq 0 ]; then
         return 0
     fi
@@ -123,15 +124,15 @@ if [ ${#issues_found[@]} -gt 0 ]; then
     echo -e "\n${YELLOW}Problemi rilevati nella configurazione ServerSignature.${NC}"
     echo -e "${YELLOW}Vuoi procedere con la remediation? (s/n)${NC}"
     read -r risposta
-    
+
     if [[ "$risposta" =~ ^[Ss]$ ]]; then
         print_section "Esecuzione Remediation"
-        
+
         # Backup delle configurazioni
         timestamp=$(date +%Y%m%d_%H%M%S)_CIS_8.2
         backup_dir="/root/server_signature_backup_$timestamp"
         mkdir -p "$backup_dir"
-        
+
         # Determina il file di configurazione da utilizzare
         if [ "$SYSTEM_TYPE" = "debian" ]; then
             CONF_TO_USE="$SECURITY_CONF"
@@ -142,35 +143,35 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         else
             CONF_TO_USE="$APACHE_CONF"
         fi
-        
+
         echo "Creazione backup in $backup_dir..."
         cp "$CONF_TO_USE" "$backup_dir/"
-        
+
         echo -e "\n${YELLOW}Configurazione ServerSignature...${NC}"
-        
+
         # Rimuovi eventuali configurazioni ServerSignature esistenti
         for conf_file in "${config_files[@]}"; do
             if [ -f "$conf_file" ]; then
                 sed -i '/^[[:space:]]*ServerSignature/d' "$conf_file"
             fi
         done
-        
+
         # Aggiungi la nuova configurazione
         echo -e "\n# Disable server signature" >> "$CONF_TO_USE"
         echo "ServerSignature Off" >> "$CONF_TO_USE"
-        
+
         # Verifica la configurazione di Apache
         echo -e "\n${YELLOW}Verifica configurazione Apache...${NC}"
         if $APACHE_CMD -t; then
             echo -e "${GREEN}✓ Configurazione Apache valida${NC}"
-            
+
             # Riavvia Apache
             echo -e "\n${YELLOW}Riavvio Apache...${NC}"
             systemctl restart $APACHE_CMD
-            
+
             if [ $? -eq 0 ]; then
                 echo -e "${GREEN}✓ Apache riavviato con successo${NC}"
-                
+
                 # Verifica finale
                 print_section "Verifica Finale"
                 if check_server_signature; then
@@ -201,22 +202,16 @@ if [ -d "$backup_dir" ]; then
     echo "2. Backup salvato in: $backup_dir"
 fi
 
-echo -e "\n${BLUE}Note sulla sicurezza ServerSignature:${NC}"
-echo -e "${BLUE}- ServerSignature Off nasconde informazioni sul server${NC}"
-echo -e "${BLUE}- Riduce il rischio di information disclosure${NC}"
-echo -e "${BLUE}- Migliora la sicurezza delle pagine di errore${NC}"
-echo -e "${BLUE}- È una best practice di sicurezza${NC}"
-
 # Test finale delle pagine di errore
 if command_exists curl; then
     print_section "Test Pagina di Errore"
     echo -e "${YELLOW}Verifica firma del server nella pagina 404...${NC}"
-    
+
     # Attendi che Apache sia completamente riavviato
     sleep 2
-    
-    if curl -s http://localhost/nonexistent 2>/dev/null | grep -qi "apache" || \
-       curl -s http://localhost/nonexistent 2>/dev/null | grep -qi "server at"; then
+
+    if curl -k https://localhost/nonexistent 2>/dev/null | grep -qi "apache" || \
+       curl -k https://localhost/nonexistent 2>/dev/null | grep -qi "server at"; then
         echo -e "${RED}✗ La firma del server è ancora visibile nelle pagine di errore${NC}"
     else
         echo -e "${GREEN}✓ Nessuna firma del server visibile nelle pagine di errore${NC}"
