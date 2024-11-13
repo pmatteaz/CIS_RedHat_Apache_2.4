@@ -44,26 +44,30 @@ fi
 # Array per memorizzare i problemi trovati
 declare -a issues_found=()
 
+# Array dei file da controllare
+declare -a config_files=("$APACHE_CONF")
+
+
 print_section "Verifica Configurazione LimitRequestLine"
 
 # Funzione per verificare la configurazione di LimitRequestLine
 check_limit_request_line() {
     echo "Controllo configurazione LimitRequestLine..."
-    
+
     local limit_found=false
     local config_file=""
     local value_correct=false
-    
+
     # Array dei file da controllare
     declare -a config_files=("$APACHE_CONF")
-    
+
     # Aggiungi file da conf.d
     if [ -d "$APACHE_CONF_D" ]; then
         while IFS= read -r -d '' file; do
             config_files+=("$file")
         done < <(find "$APACHE_CONF_D" -type f -name "*.conf" -print0)
     fi
-    
+
     # Controlla ogni file di configurazione
     for conf_file in "${config_files[@]}"; do
         if [ -f "$conf_file" ]; then
@@ -71,10 +75,10 @@ check_limit_request_line() {
                 limit_found=true
                 config_file="$conf_file"
                 echo -e "${BLUE}LimitRequestLine trovato in: ${NC}$conf_file"
-                
+
                 local current_value=$(grep "^[[:space:]]*LimitRequestLine" "$conf_file" | awk '{print $2}')
                 echo -e "${BLUE}Valore attuale: ${NC}$current_value"
-                
+
                 if [ "$current_value" -le 512 ] 2>/dev/null; then
                     value_correct=true
                     echo -e "${GREEN}✓ LimitRequestLine è configurato correttamente (≤ 512)${NC}"
@@ -85,13 +89,13 @@ check_limit_request_line() {
             fi
         fi
     done
-    
+
     if ! $limit_found; then
         echo -e "${RED}✗ LimitRequestLine non configurato esplicitamente${NC}"
         echo -e "${YELLOW}! Verrà utilizzato il valore predefinito di 8190${NC}"
         issues_found+=("no_request_line_limit")
     fi
-    
+
     if [ ${#issues_found[@]} -eq 0 ]; then
         return 0
     fi
@@ -106,22 +110,22 @@ if [ ${#issues_found[@]} -gt 0 ]; then
     echo -e "\n${YELLOW}Problemi rilevati nella configurazione LimitRequestLine.${NC}"
     echo -e "${YELLOW}Vuoi procedere con la remediation? (s/n)${NC}"
     read -r risposta
-    
+
     if [[ "$risposta" =~ ^[Ss]$ ]]; then
         print_section "Esecuzione Remediation"
-        
+
         # Backup delle configurazioni
         timestamp=$(date +%Y%m%d_%H%M%S)_CIS_10.1
         backup_dir="/root/limit_request_line_backup_$timestamp"
         mkdir -p "$backup_dir"
-        
+
         echo "Creazione backup in $backup_dir..."
         for conf_file in "${config_files[@]}"; do
             if [ -f "$conf_file" ]; then
                 cp "$conf_file" "$backup_dir/"
             fi
         done
-        
+
         # Determina il file di configurazione da modificare
         if [ "$SYSTEM_TYPE" = "debian" ]; then
             CONF_TO_USE="/etc/apache2/conf-available/security.conf"
@@ -130,32 +134,34 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         else
             CONF_TO_USE="$APACHE_CONF"
         fi
-        
+
         echo -e "\n${YELLOW}Configurazione LimitRequestLine...${NC}"
-        
+
         # Rimuovi eventuali configurazioni LimitRequestLine esistenti
         for conf_file in "${config_files[@]}"; do
             if [ -f "$conf_file" ]; then
+                sed -i '/# Set request line limit/d' "$conf_file"
+                sed -i '/#[[:space:]]*LimitRequestLine/d' "$conf_file"
                 sed -i '/^[[:space:]]*LimitRequestLine/d' "$conf_file"
             fi
         done
-        
+
         # Aggiungi la nuova configurazione
         echo -e "\n# Set request line limit" >> "$CONF_TO_USE"
         echo "LimitRequestLine 512" >> "$CONF_TO_USE"
-        
+
         # Verifica la configurazione di Apache
         echo -e "\n${YELLOW}Verifica configurazione Apache...${NC}"
         if $APACHE_CMD -t; then
             echo -e "${GREEN}✓ Configurazione Apache valida${NC}"
-            
+
             # Riavvia Apache
             echo -e "\n${YELLOW}Riavvio Apache...${NC}"
             systemctl restart $APACHE_CMD
-            
+
             if [ $? -eq 0 ]; then
                 echo -e "${GREEN}✓ Apache riavviato con successo${NC}"
-                
+
                 # Verifica finale
                 print_section "Verifica Finale"
                 if check_limit_request_line; then
@@ -169,14 +175,14 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         else
             echo -e "${RED}✗ Errore nella configurazione di Apache${NC}"
             echo -e "${YELLOW}Ripristino del backup...${NC}"
-            
+
             # Ripristina i file originali
             for conf_file in "${config_files[@]}"; do
                 if [ -f "$backup_dir/$(basename "$conf_file")" ]; then
                     cp "$backup_dir/$(basename "$conf_file")" "$conf_file"
                 fi
             done
-            
+
             systemctl restart $APACHE_CMD
         fi
     else
@@ -196,23 +202,17 @@ if [ -d "$backup_dir" ]; then
     echo "3. Backup salvato in: $backup_dir"
 fi
 
-echo -e "\n${BLUE}Note sulla sicurezza LimitRequestLine:${NC}"
-echo -e "${BLUE}- Limita la lunghezza della riga di richiesta HTTP${NC}"
-echo -e "${BLUE}- Protegge da attacchi basati su richieste molto lunghe${NC}"
-echo -e "${BLUE}- Riduce il rischio di buffer overflow${NC}"
-echo -e "${BLUE}- Considerare la compatibilità con applicazioni legittime${NC}"
-
 # Test del limite se possibile
 if command_exists curl; then
     print_section "Test Limite Richiesta"
     echo -e "${YELLOW}Test risposta server con URL lungo...${NC}"
-    
+
     # Attendi che Apache sia completamente riavviato
     sleep 2
-    
+
     # Crea un URL molto lungo per il test
     long_url="http://localhost/$(head -c 600 /dev/zero | tr '\0' 'a')"
-    
+
     echo -e "\n${BLUE}Test limite riga richiesta:${NC}"
     if ! curl -s -o /dev/null "$long_url"; then
         echo -e "${GREEN}✓ Il server rifiuta correttamente le richieste troppo lunghe${NC}"
@@ -220,3 +220,4 @@ if command_exists curl; then
         echo -e "${YELLOW}! Test del limite non conclusivo${NC}"
     fi
 fi
+
