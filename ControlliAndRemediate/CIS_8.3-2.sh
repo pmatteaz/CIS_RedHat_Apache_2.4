@@ -95,7 +95,66 @@ print_section "Verifica Contenuti Predefiniti"
 
 # [Il resto delle funzioni di verifica dei contenuti predefiniti rimane invariato...]
 check_default_content() {
-    [... mantieni il codice originale della funzione ...]
+        echo "Controllo contenuti predefiniti Apache..."
+    
+    local found_default_content=false
+    
+    # Controlla ogni percorso predefinito
+    for path in "${DEFAULT_FILES[@]}"; do
+        if [ -e "$path" ]; then
+            found_default_content=true
+            echo -e "${RED}✗ Trovato contenuto predefinito: $path${NC}"
+            issues_found+=("found_${path//\//_}")
+            
+            # Se è una directory, mostra il contenuto
+            if [ -d "$path" ]; then
+                echo -e "${BLUE}Contenuto della directory:${NC}"
+                ls -la "$path" | head -n 5
+                if [ $(ls -1 "$path" | wc -l) -gt 5 ]; then
+                    echo "..."
+                fi
+            fi
+        else
+            echo -e "${GREEN}✓ Non trovato contenuto predefinito: $path${NC}"
+        fi
+    done
+    
+    # Controlla per file di esempio o readme
+    local example_files=$(find "$HTML_DIR" -type f -name "*example*" -o -name "README*" -o -name "*.sample" 2>/dev/null)
+    if [ -n "$example_files" ]; then
+        found_default_content=true
+        echo -e "${RED}✗ Trovati file di esempio:${NC}"
+        echo "$example_files"
+        issues_found+=("found_example_files")
+    fi
+    
+    # Verifica permessi directory principale
+    if [ -d "$HTML_DIR" ]; then
+        local dir_perms=$(stat -c "%a" "$HTML_DIR")
+        local dir_owner=$(stat -c "%U:%G" "$HTML_DIR")
+        
+        echo -e "\n${BLUE}Permessi directory principale $HTML_DIR:${NC}"
+        echo "Permessi: $dir_perms"
+        echo "Proprietario: $dir_owner"
+        
+        if [ "$dir_perms" != "755" ]; then
+            echo -e "${RED}✗ Permessi directory non corretti${NC}"
+            issues_found+=("wrong_dir_perms")
+        fi
+        
+        if [ "$SYSTEM_TYPE" = "redhat" ] && [ "$dir_owner" != "apache:apache" ]; then
+            echo -e "${RED}✗ Proprietario directory non corretto${NC}"
+            issues_found+=("wrong_dir_owner")
+        elif [ "$SYSTEM_TYPE" = "debian" ] && [ "$dir_owner" != "www-data:www-data" ]; then
+            echo -e "${RED}✗ Proprietario directory non corretto${NC}"
+            issues_found+=("wrong_dir_owner")
+        fi
+    fi
+    
+    if [ ${#issues_found[@]} -eq 0 ]; then
+        return 0
+    fi
+    return 1
 }
 
 # Esegui le verifiche
