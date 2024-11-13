@@ -1,4 +1,3 @@
-#!/bin/bash
 
 # Colori per output
 RED='\033[0;31m'
@@ -44,16 +43,19 @@ fi
 # Array per memorizzare i problemi trovati
 declare -a issues_found=()
 
+# Array dei file da controllare
+declare -a config_files=("$APACHE_CONF")
+
 print_section "Verifica Configurazione Request Header Timeout"
 
 # Funzione per verificare la configurazione del timeout degli header
 check_header_timeout() {
     echo "Controllo configurazione RequestReadTimeout header..."
-    
+
     local header_timeout_found=false
     local config_file=""
     local value_correct=false
-    
+
     # Verifica se mod_reqtimeout è caricato
     if ! $APACHE_CMD -M 2>/dev/null | grep -q "reqtimeout_module"; then
         echo -e "${RED}✗ Modulo reqtimeout non caricato${NC}"
@@ -62,17 +64,14 @@ check_header_timeout() {
     else
         echo -e "${GREEN}✓ Modulo reqtimeout caricato${NC}"
     fi
-    
-    # Array dei file da controllare
-    declare -a config_files=("$APACHE_CONF")
-    
+
     # Aggiungi file da conf.d
     if [ -d "$APACHE_CONF_D" ]; then
         while IFS= read -r -d '' file; do
             config_files+=("$file")
         done < <(find "$APACHE_CONF_D" -type f -name "*.conf" -print0)
     fi
-    
+
     # Controlla ogni file di configurazione
     for conf_file in "${config_files[@]}"; do
         if [ -f "$conf_file" ]; then
@@ -80,12 +79,13 @@ check_header_timeout() {
                 header_timeout_found=true
                 config_file="$conf_file"
                 echo -e "${BLUE}RequestReadTimeout header trovato in: ${NC}$conf_file"
-                
+
                 local timeout_line=$(grep "^[[:space:]]*RequestReadTimeout[[:space:]]*header=" "$conf_file")
                 echo -e "${BLUE}Configurazione attuale: ${NC}$timeout_line"
-                
+
                 # Estrai il valore massimo del timeout
                 local max_timeout=$(echo "$timeout_line" | grep -o 'header=[0-9]*-[0-9]*' | cut -d'-' -f2)
+                echo "## $max_timeout ##"
                 if [ -n "$max_timeout" ] && [ "$max_timeout" -le 40 ]; then
                     value_correct=true
                     echo -e "${GREEN}✓ Timeout header configurato correttamente (≤ 40 secondi)${NC}"
@@ -96,12 +96,12 @@ check_header_timeout() {
             fi
         fi
     done
-    
+
     if ! $header_timeout_found; then
         echo -e "${RED}✗ RequestReadTimeout header non configurato${NC}"
         issues_found+=("no_header_timeout_config")
     fi
-    
+
     if [ ${#issues_found[@]} -eq 0 ]; then
         return 0
     fi
@@ -116,22 +116,22 @@ if [ ${#issues_found[@]} -gt 0 ]; then
     echo -e "\n${YELLOW}Problemi rilevati nella configurazione del timeout degli header.${NC}"
     echo -e "${YELLOW}Vuoi procedere con la remediation? (s/n)${NC}"
     read -r risposta
-    
+
     if [[ "$risposta" =~ ^[Ss]$ ]]; then
         print_section "Esecuzione Remediation"
-        
+
         # Backup delle configurazioni
         timestamp=$(date +%Y%m%d_%H%M%S)_CIS_9.5
         backup_dir="/root/header_timeout_backup_$timestamp"
         mkdir -p "$backup_dir"
-        
+
         echo "Creazione backup in $backup_dir..."
         for conf_file in "${config_files[@]}"; do
             if [ -f "$conf_file" ]; then
                 cp "$conf_file" "$backup_dir/"
             fi
         done
-        
+
         # Attiva il modulo reqtimeout se necessario
         if [ "$SYSTEM_TYPE" = "debian" ]; then
             a2enmod reqtimeout
@@ -144,32 +144,34 @@ if [ ${#issues_found[@]} -gt 0 ]; then
                 echo "LoadModule reqtimeout_module modules/mod_reqtimeout.so" >> "$APACHE_CONF"
             fi
         fi
-        
+
         echo -e "\n${YELLOW}Configurazione RequestReadTimeout header...${NC}"
-        
+
         # Rimuovi eventuali configurazioni RequestReadTimeout esistenti
         for conf_file in "${config_files[@]}"; do
             if [ -f "$conf_file" ]; then
-                sed -i '/^[[:space:]]*RequestReadTimeout[[:space:]]*header=/d' "$conf_file"
+                sed -i '/#[[:space:]]*Set request header timeout/d' "$conf_file"
+                sed -i '/#[[:space:]]*RequestReadTimeout[[:space:]]*header=*/d' "$conf_file"
+                sed -i '/^[[:space:]]*RequestReadTimeout[[:space:]]*header=*/d' "$conf_file"
             fi
         done
-        
+
         # Aggiungi la nuova configurazione
         echo -e "\n# Set request header timeout" >> "$CONF_TO_USE"
-        echo "RequestReadTimeout header=20-40,MinRate=500" >> "$CONF_TO_USE"
-        
+        echo "RequestReadTimeout header=20-40,MinRate=500 body=20,MinRate=500" >> "$CONF_TO_USE"
+
         # Verifica la configurazione di Apache
         echo -e "\n${YELLOW}Verifica configurazione Apache...${NC}"
         if $APACHE_CMD -t; then
             echo -e "${GREEN}✓ Configurazione Apache valida${NC}"
-            
+
             # Riavvia Apache
             echo -e "\n${YELLOW}Riavvio Apache...${NC}"
             systemctl restart $APACHE_CMD
-            
+
             if [ $? -eq 0 ]; then
                 echo -e "${GREEN}✓ Apache riavviato con successo${NC}"
-                
+
                 # Verifica finale
                 print_section "Verifica Finale"
                 if check_header_timeout; then
@@ -183,14 +185,14 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         else
             echo -e "${RED}✗ Errore nella configurazione di Apache${NC}"
             echo -e "${YELLOW}Ripristino del backup...${NC}"
-            
+
             # Ripristina i file originali
             for conf_file in "${config_files[@]}"; do
                 if [ -f "$backup_dir/$(basename "$conf_file")" ]; then
                     cp "$backup_dir/$(basename "$conf_file")" "$conf_file"
                 fi
             done
-            
+
             systemctl restart $APACHE_CMD
         fi
     else
@@ -210,20 +212,14 @@ if [ -d "$backup_dir" ]; then
     echo "3. Backup salvato in: $backup_dir"
 fi
 
-echo -e "\n${BLUE}Note sulla sicurezza del timeout degli header:${NC}"
-echo -e "${BLUE}- Un timeout appropriato protegge da attacchi Slow Headers${NC}"
-echo -e "${BLUE}- Il MinRate garantisce una velocità minima di trasmissione${NC}"
-echo -e "${BLUE}- Valori troppo bassi potrebbero impattare client legittimi lenti${NC}"
-echo -e "${BLUE}- Il modulo reqtimeout è essenziale per questa protezione${NC}"
-
 # Test del timeout se possibile
 if command_exists curl; then
     print_section "Test Timeout Header"
     echo -e "${YELLOW}Test risposta server con header lenti...${NC}"
-    
+
     # Attendi che Apache sia completamente riavviato
     sleep 2
-    
+
     # Test con un header molto grande
     echo -e "\n${BLUE}Test timeout con header grande:${NC}"
     if ! curl -H "X-Test: $(head -c 1000000 /dev/zero | tr '\0' 'a')" -m 45 http://localhost/ > /dev/null 2>&1; then
