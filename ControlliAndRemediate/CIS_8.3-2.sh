@@ -166,4 +166,10 @@ else
     echo -e "\n${GREEN}✓ Nessun problema rilevato nella configurazione${NC}"
 fi
 
-# [Il resto del codice rimane invariato...]
+# Riepilogo finale
+print_section "Riepilogo Finale"
+echo "1. Directory principale web: $HTML_DIR"
+echo "2. Directory Apache: $HTTPD_DIR"
+if [ -d "$backup_dir" ]; then
+    echo "3. Backup salvato in: $backup_dir"
+fi
