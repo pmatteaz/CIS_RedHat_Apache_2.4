@@ -158,7 +158,7 @@ check_default_content() {
 }
 
 # Esegui le verifiche
-check_default_content
+# check_default_content
 check_autoindex_include
 
 # Se ci sono problemi, offri remediation
