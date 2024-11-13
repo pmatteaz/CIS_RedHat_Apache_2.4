@@ -44,26 +44,27 @@ fi
 # Array per memorizzare i problemi trovati
 declare -a issues_found=()
 
+# Array dei file da controllare
+declare -a config_files=("$APACHE_CONF")
+
+
 print_section "Verifica Configurazione Timeout"
 
 # Funzione per verificare la configurazione del timeout
 check_timeout_configuration() {
     echo "Controllo configurazione Timeout..."
-    
+
     local timeout_found=false
     local config_file=""
     local timeout_correct=false
-    
-    # Array dei file da controllare
-    declare -a config_files=("$APACHE_CONF")
-    
+
     # Aggiungi file da conf.d
     if [ -d "$APACHE_CONF_D" ]; then
         while IFS= read -r -d '' file; do
             config_files+=("$file")
         done < <(find "$APACHE_CONF_D" -type f -name "*.conf" -print0)
     fi
-    
+
     # Controlla ogni file di configurazione
     for conf_file in "${config_files[@]}"; do
         if [ -f "$conf_file" ]; then
@@ -71,10 +72,10 @@ check_timeout_configuration() {
                 timeout_found=true
                 config_file="$conf_file"
                 echo -e "${BLUE}Timeout trovato in: ${NC}$conf_file"
-                
+
                 local current_value=$(grep "^[[:space:]]*Timeout[[:space:]]" "$conf_file" | awk '{print $2}')
                 echo -e "${BLUE}Valore attuale: ${NC}$current_value secondi"
-                
+
                 if [ "$current_value" -le 10 ] 2>/dev/null; then
                     timeout_correct=true
                     echo -e "${GREEN}✓ Timeout è configurato correttamente (≤ 10 secondi)${NC}"
@@ -85,13 +86,13 @@ check_timeout_configuration() {
             fi
         fi
     done
-    
+
     if ! $timeout_found; then
         echo -e "${RED}✗ Timeout non configurato esplicitamente${NC}"
         echo -e "${YELLOW}! Verrà utilizzato il valore predefinito di 300 secondi${NC}"
         issues_found+=("no_timeout_config")
     fi
-    
+
     if [ ${#issues_found[@]} -eq 0 ]; then
         return 0
     fi
@@ -106,22 +107,22 @@ if [ ${#issues_found[@]} -gt 0 ]; then
     echo -e "\n${YELLOW}Problemi rilevati nella configurazione Timeout.${NC}"
     echo -e "${YELLOW}Vuoi procedere con la remediation? (s/n)${NC}"
     read -r risposta
-    
+
     if [[ "$risposta" =~ ^[Ss]$ ]]; then
         print_section "Esecuzione Remediation"
-        
+
         # Backup delle configurazioni
         timestamp=$(date +%Y%m%d_%H%M%S)_CIS_9.1
         backup_dir="/root/timeout_backup_$timestamp"
         mkdir -p "$backup_dir"
-        
+
         echo "Creazione backup in $backup_dir..."
         for conf_file in "${config_files[@]}"; do
             if [ -f "$conf_file" ]; then
                 cp "$conf_file" "$backup_dir/"
             fi
         done
-        
+
         # Determina il file di configurazione da modificare
         if [ "$SYSTEM_TYPE" = "debian" ]; then
             CONF_TO_USE="/etc/apache2/conf-available/timeout.conf"
@@ -130,32 +131,32 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         else
             CONF_TO_USE="$APACHE_CONF"
         fi
-        
+
         echo -e "\n${YELLOW}Configurazione Timeout...${NC}"
-        
+
         # Rimuovi eventuali configurazioni Timeout esistenti
         for conf_file in "${config_files[@]}"; do
             if [ -f "$conf_file" ]; then
                 sed -i '/^[[:space:]]*Timeout[[:space:]]/d' "$conf_file"
             fi
         done
-        
+
         # Aggiungi la nuova configurazione
         echo -e "\n# Set timeout to 10 seconds" >> "$CONF_TO_USE"
         echo "Timeout 10" >> "$CONF_TO_USE"
-        
+
         # Verifica la configurazione di Apache
         echo -e "\n${YELLOW}Verifica configurazione Apache...${NC}"
         if $APACHE_CMD -t; then
             echo -e "${GREEN}✓ Configurazione Apache valida${NC}"
-            
+
             # Riavvia Apache
             echo -e "\n${YELLOW}Riavvio Apache...${NC}"
             systemctl restart $APACHE_CMD
-            
+
             if [ $? -eq 0 ]; then
                 echo -e "${GREEN}✓ Apache riavviato con successo${NC}"
-                
+
                 # Verifica finale
                 print_section "Verifica Finale"
                 if check_timeout_configuration; then
@@ -169,14 +170,14 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         else
             echo -e "${RED}✗ Errore nella configurazione di Apache${NC}"
             echo -e "${YELLOW}Ripristino del backup...${NC}"
-            
+
             # Ripristina i file originali
             for conf_file in "${config_files[@]}"; do
                 if [ -f "$backup_dir/$(basename "$conf_file")" ]; then
                     cp "$backup_dir/$(basename "$conf_file")" "$conf_file"
                 fi
             done
-            
+
             systemctl restart $APACHE_CMD
         fi
     else
@@ -196,27 +197,21 @@ if [ -d "$backup_dir" ]; then
     echo "3. Backup salvato in: $backup_dir"
 fi
 
-echo -e "\n${BLUE}Note sulla sicurezza Timeout:${NC}"
-echo -e "${BLUE}- Un timeout basso aiuta a prevenire attacchi DoS${NC}"
-echo -e "${BLUE}- Riduce il consumo di risorse del server${NC}"
-echo -e "${BLUE}- Protegge da connessioni lente e incomplete${NC}"
-echo -e "${BLUE}- Considerare l'impatto su applicazioni con risposte lente${NC}"
-
 # Test timeout se possibile
 if command_exists curl && command_exists timeout; then
     print_section "Test Timeout"
     echo -e "${YELLOW}Verifica risposta del server con timeout...${NC}"
-    
+
     # Attendi che Apache sia completamente riavviato
     sleep 2
-    
+
     echo -e "\n${BLUE}Test connessione rapida:${NC}"
-    if curl -s -I http://localhost > /dev/null; then
+    if curl -ks -I https://localhost > /dev/null; then
         echo -e "${GREEN}✓ Il server risponde correttamente a richieste rapide${NC}"
     fi
-    
+
     echo -e "\n${BLUE}Test timeout connessione:${NC}"
-    if ! timeout 11 curl -s -o /dev/null http://localhost/nonexistent; then
+    if ! timeout 11 curl -ks -o /dev/null https://localhost/nonexistent; then
         echo -e "${GREEN}✓ Il server chiude correttamente le connessioni dopo il timeout${NC}"
     else
         echo -e "${YELLOW}! Impossibile verificare il comportamento del timeout${NC}"
