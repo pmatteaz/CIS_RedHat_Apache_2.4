@@ -1,4 +1,5 @@
 #!/bin/bash
+# Fa gia anche la 9.3 e 9.4
 
 # Colori per output
 RED='\033[0;31m'
