@@ -44,6 +44,9 @@ fi
 # Array per memorizzare i problemi trovati
 declare -a issues_found=()
 
+# Array dei file da controllare
+declare -a config_files=("$APACHE_CONF")
+
 print_section "Verifica Configurazione MaxKeepAliveRequests"
 
 # Funzione per verificare la configurazione di MaxKeepAliveRequests
@@ -53,9 +56,7 @@ check_max_keepalive() {
     local max_keepalive_found=false
     local config_file=""
     local value_correct=false
-    
-    # Array dei file da controllare
-    declare -a config_files=("$APACHE_CONF")
+
     
     # Aggiungi file da conf.d
     if [ -d "$APACHE_CONF_D" ]; then
