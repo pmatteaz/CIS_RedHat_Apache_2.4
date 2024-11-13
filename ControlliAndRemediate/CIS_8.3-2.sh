@@ -1,5 +1,5 @@
 #!/bin/bash
-#Versione che cancella i file 
+#Versione che commenta la direttiva 
 
 # Colori per output
 RED='\033[0;31m'
