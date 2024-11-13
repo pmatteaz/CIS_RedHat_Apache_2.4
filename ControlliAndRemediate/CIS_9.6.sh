@@ -44,6 +44,9 @@ fi
 # Array per memorizzare i problemi trovati
 declare -a issues_found=()
 
+# Array dei file da controllare
+declare -a config_files=("$APACHE_CONF")
+
 print_section "Verifica Configurazione Request Body Timeout"
 
 # Funzione per verificare la configurazione del timeout del body
@@ -62,9 +65,6 @@ check_body_timeout() {
     else
         echo -e "${GREEN}✓ Modulo reqtimeout caricato${NC}"
     fi
-    
-    # Array dei file da controllare
-    declare -a config_files=("$APACHE_CONF")
     
     # Aggiungi file da conf.d
     if [ -d "$APACHE_CONF_D" ]; then
@@ -150,6 +150,8 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         # Rimuovi eventuali configurazioni RequestReadTimeout body esistenti
         for conf_file in "${config_files[@]}"; do
             if [ -f "$conf_file" ]; then
+                sed -i '/# Set request body timeout/d' "$conf_file"
+                sed -i '/#[[:space:]]*RequestReadTimeout[[:space:]]*body=/d' "$conf_file"
                 sed -i '/^[[:space:]]*RequestReadTimeout[[:space:]]*body=/d' "$conf_file"
             fi
         done
@@ -209,12 +211,6 @@ fi
 if [ -d "$backup_dir" ]; then
     echo "3. Backup salvato in: $backup_dir"
 fi
-
-echo -e "\n${BLUE}Note sulla sicurezza del timeout del body:${NC}"
-echo -e "${BLUE}- Un timeout appropriato protegge da attacchi Slow POST${NC}"
-echo -e "${BLUE}- Il MinRate garantisce una velocità minima di upload${NC}"
-echo -e "${BLUE}- Valori troppo bassi potrebbero interferire con upload legittimi${NC}"
-echo -e "${BLUE}- Il modulo reqtimeout è essenziale per questa protezione${NC}"
 
 # Test del timeout se possibile
 if command_exists curl && command_exists dd; then
