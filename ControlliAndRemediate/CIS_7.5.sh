@@ -152,7 +152,7 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         echo -e "\n${YELLOW}Aggiornamento configurazione cipher suite...${NC}"
         
         # Prepara le nuove configurazioni
-        SECURE_CIPHERS="EECDH+AESGCM:EDH+AESGCM"
+        SECURE_CIPHERS="ALL:!EXP:!NULL:!LOW:!SSLv2:!RC4:!aNULL"
         
         # Cerca e sostituisci/aggiungi SSLCipherSuite
         if grep -q "^[[:space:]]*SSLCipherSuite" "$SSL_CONF_FILE"; then
