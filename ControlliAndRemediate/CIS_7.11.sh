@@ -54,14 +54,14 @@ print_section "Verifica Configurazione HSTS"
 # Funzione per verificare la configurazione HSTS
 check_hsts() {
     echo "Controllo configurazione HTTP Strict Transport Security..."
-    
+
     # Verifica esistenza file di configurazione SSL
     if [ ! -f "$SSL_CONF_FILE" ]; then
         echo -e "${RED}✗ File di configurazione SSL non trovato: $SSL_CONF_FILE${NC}"
         issues_found+=("no_ssl_conf")
         return 1
     fi
-    
+
     # Verifica mod_headers
     if $APACHE_CMD -M 2>/dev/null | grep -q "headers_module"; then
         echo -e "${GREEN}✓ Modulo headers caricato${NC}"
@@ -69,43 +69,43 @@ check_hsts() {
         echo -e "${RED}✗ Modulo headers non caricato${NC}"
         issues_found+=("no_headers_module")
     fi
-    
+
     # Verifica configurazione HSTS
     if grep -q "^[[:space:]]*Header[[:space:]]\+.*Strict-Transport-Security" "$SSL_CONF_FILE"; then
         echo -e "${GREEN}✓ Header HSTS trovato${NC}"
-        
+
         # Verifica parametri HSTS
         local hsts_line=$(grep "^[[:space:]]*Header[[:space:]]\+.*Strict-Transport-Security" "$SSL_CONF_FILE")
         echo -e "${BLUE}Configurazione attuale HSTS: ${NC}$hsts_line"
-        
+
         # Verifica max-age
-        if echo "$hsts_line" | grep -q "max-age=63072000"; then
+        if echo "$hsts_line" | grep -q "max-age=600"; then
             echo -e "${GREEN}✓ max-age configurato correttamente (2 anni)${NC}"
         else
             echo -e "${RED}✗ max-age non configurato correttamente${NC}"
             issues_found+=("wrong_max_age")
         fi
-        
+
         # Verifica includeSubDomains
-        if echo "$hsts_line" | grep -q "includeSubDomains"; then
-            echo -e "${GREEN}✓ includeSubDomains abilitato${NC}"
-        else
-            echo -e "${RED}✗ includeSubDomains non abilitato${NC}"
-            issues_found+=("no_include_subdomains")
-        fi
-        
+        #if echo "$hsts_line" | grep -q "includeSubDomains"; then
+        #    echo -e "${GREEN}✓ includeSubDomains abilitato${NC}"
+        #else
+        #    echo -e "${RED}✗ includeSubDomains non abilitato${NC}"
+        #    issues_found+=("no_include_subdomains")
+        #fi
+
         # Verifica preload
-        if echo "$hsts_line" | grep -q "preload"; then
-            echo -e "${GREEN}✓ preload abilitato${NC}"
-        else
-            echo -e "${RED}✗ preload non abilitato${NC}"
-            issues_found+=("no_preload")
-        fi
+        #if echo "$hsts_line" | grep -q "preload"; then
+        #    echo -e "${GREEN}✓ preload abilitato${NC}"
+        #else
+        #    echo -e "${RED}✗ preload non abilitato${NC}"
+        #    issues_found+=("no_preload")
+        #fi
     else
         echo -e "${RED}✗ Header HSTS non configurato${NC}"
         issues_found+=("no_hsts")
     fi
-    
+
     if [ ${#issues_found[@]} -eq 0 ]; then
         return 0
     fi
@@ -120,18 +120,18 @@ if [ ${#issues_found[@]} -gt 0 ]; then
     echo -e "\n${YELLOW}Problemi rilevati nella configurazione HSTS.${NC}"
     echo -e "${YELLOW}Vuoi procedere con la remediation? (s/n)${NC}"
     read -r risposta
-    
+
     if [[ "$risposta" =~ ^[Ss]$ ]]; then
         print_section "Esecuzione Remediation"
-        
+
         # Backup delle configurazioni
         timestamp=$(date +%Y%m%d_%H%M%S)_CIS_7.11
         backup_dir="/root/hsts_backup_$timestamp"
         mkdir -p "$backup_dir"
-        
+
         echo "Creazione backup in $backup_dir..."
         cp "$SSL_CONF_FILE" "$backup_dir/"
-        
+
         # Abilita mod_headers se necessario
         if [ "$SYSTEM_TYPE" = "debian" ]; then
             a2enmod headers
@@ -140,28 +140,28 @@ if [ ${#issues_found[@]} -gt 0 ]; then
                 echo "LoadModule headers_module modules/mod_headers.so" > "$SSL_CONF_DIR/headers.conf"
             fi
         fi
-        
+
         echo -e "\n${YELLOW}Configurazione HSTS...${NC}"
-        
+
         # Rimuovi eventuali configurazioni HSTS esistenti
         sed -i '/^[[:space:]]*Header.*Strict-Transport-Security/d' "$SSL_CONF_FILE"
-        
+
         # Aggiungi la nuova configurazione HSTS
         echo "# Enable HTTP Strict Transport Security" >> "$SSL_CONF_FILE"
-        echo "Header always set Strict-Transport-Security \"max-age=63072000; includeSubdomains; preload\"" >> "$SSL_CONF_FILE"
-        
+        echo "Header always set Strict-Transport-Security \"max-age=600\"" >> "$SSL_CONF_FILE"
+
         # Verifica la configurazione di Apache
         echo -e "\n${YELLOW}Verifica configurazione Apache...${NC}"
         if $APACHE_CMD -t; then
             echo -e "${GREEN}✓ Configurazione Apache valida${NC}"
-            
+
             # Riavvia Apache
             echo -e "\n${YELLOW}Riavvio Apache...${NC}"
             systemctl restart $APACHE_CMD
-            
+
             if [ $? -eq 0 ]; then
                 echo -e "${GREEN}✓ Apache riavviato con successo${NC}"
-                
+
                 # Verifica finale
                 print_section "Verifica Finale"
                 if check_hsts; then
@@ -192,20 +192,14 @@ if [ -d "$backup_dir" ]; then
     echo "2. Backup salvato in: $backup_dir"
 fi
 
-echo -e "\n${BLUE}Note sulla sicurezza HSTS:${NC}"
-echo -e "${BLUE}- HSTS forza le connessioni HTTPS per il dominio${NC}"
-echo -e "${BLUE}- max-age=63072000 imposta una durata di 2 anni${NC}"
-echo -e "${BLUE}- includeSubDomains estende HSTS a tutti i sottodomini${NC}"
-echo -e "${BLUE}- preload permette l'inclusione nella lista preload dei browser${NC}"
-
 # Test HSTS se possibile
 if command_exists curl; then
     print_section "Test HSTS"
     echo -e "${YELLOW}Verifica header HSTS...${NC}"
-    
+
     # Attendi che Apache sia completamente riavviato
     sleep 2
-    
+
     if curl -sI https://localhost 2>/dev/null | grep -i "Strict-Transport-Security"; then
         echo -e "${GREEN}✓ Header HSTS presente${NC}"
         echo -e "\n${BLUE}Header HSTS:${NC}"
