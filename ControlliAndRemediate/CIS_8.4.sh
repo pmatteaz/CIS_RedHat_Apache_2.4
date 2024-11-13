@@ -46,24 +46,25 @@ declare -a issues_found=()
 
 print_section "Verifica Configurazione ETag"
 
+# Array dei file da controllare
+declare -a config_files=("$APACHE_CONF")
+
 # Funzione per verificare la configurazione ETag
 check_etag_configuration() {
     echo "Controllo configurazione ETag..."
-    
+
     local etag_found=false
     local config_file=""
     local etag_correct=false
-    
-    # Array dei file da controllare
-    declare -a config_files=("$APACHE_CONF")
-    
+
+
     # Aggiungi file da conf.d
     if [ -d "$APACHE_CONF_D" ]; then
         while IFS= read -r -d '' file; do
             config_files+=("$file")
         done < <(find "$APACHE_CONF_D" -type f -name "*.conf" -print0)
     fi
-    
+
     # Controlla ogni file di configurazione
     for conf_file in "${config_files[@]}"; do
         if [ -f "$conf_file" ]; then
@@ -71,10 +72,10 @@ check_etag_configuration() {
                 etag_found=true
                 config_file="$conf_file"
                 echo -e "${BLUE}FileETag trovato in: ${NC}$conf_file"
-                
+
                 local current_value=$(grep "^[[:space:]]*FileETag" "$conf_file" | awk '{print $2}')
                 echo -e "${BLUE}Valore attuale: ${NC}$current_value"
-                
+
                 if [[ "${current_value,,}" == "none" ]]; then
                     etag_correct=true
                     echo -e "${GREEN}✓ FileETag è configurato correttamente${NC}"
@@ -85,12 +86,12 @@ check_etag_configuration() {
             fi
         fi
     done
-    
+
     if ! $etag_found; then
         echo -e "${RED}✗ FileETag non configurato${NC}"
         issues_found+=("no_etag_config")
     fi
-    
+
     # Verifica header ETag nelle risposte
     if command_exists curl; then
         echo -e "\n${BLUE}Verifica header ETag nelle risposte...${NC}"
@@ -104,7 +105,7 @@ check_etag_configuration() {
             echo -e "${GREEN}✓ Nessun header ETag nelle risposte${NC}"
         fi
     fi
-    
+
     if [ ${#issues_found[@]} -eq 0 ]; then
         return 0
     fi
@@ -119,22 +120,22 @@ if [ ${#issues_found[@]} -gt 0 ]; then
     echo -e "\n${YELLOW}Problemi rilevati nella configurazione ETag.${NC}"
     echo -e "${YELLOW}Vuoi procedere con la remediation? (s/n)${NC}"
     read -r risposta
-    
+
     if [[ "$risposta" =~ ^[Ss]$ ]]; then
         print_section "Esecuzione Remediation"
-        
+
         # Backup delle configurazioni
         timestamp=$(date +%Y%m%d_%H%M%S)_CIS_8.4
         backup_dir="/root/etag_backup_$timestamp"
         mkdir -p "$backup_dir"
-        
+
         echo "Creazione backup in $backup_dir..."
         for conf_file in "${config_files[@]}"; do
             if [ -f "$conf_file" ]; then
                 cp "$conf_file" "$backup_dir/"
             fi
         done
-        
+
         # Determina il file di configurazione da modificare
         if [ "$SYSTEM_TYPE" = "debian" ]; then
             CONF_TO_USE="/etc/apache2/conf-available/etag.conf"
@@ -143,32 +144,34 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         else
             CONF_TO_USE="$APACHE_CONF"
         fi
-        
+
         echo -e "\n${YELLOW}Configurazione FileETag...${NC}"
-        
+
         # Rimuovi eventuali configurazioni FileETag esistenti
         for conf_file in "${config_files[@]}"; do
             if [ -f "$conf_file" ]; then
+                sed -i '/#[[:space:]]*Disable[[:space:]]ETag.*/d' "$conf_file"
+                sed -i '/#[[:space:]]*FileETag/d' "$conf_file"
                 sed -i '/^[[:space:]]*FileETag/d' "$conf_file"
             fi
         done
-        
+
         # Aggiungi la nuova configurazione
         echo -e "\n# Disable ETag headers" >> "$CONF_TO_USE"
         echo "FileETag None" >> "$CONF_TO_USE"
-        
+
         # Verifica la configurazione di Apache
         echo -e "\n${YELLOW}Verifica configurazione Apache...${NC}"
         if $APACHE_CMD -t; then
             echo -e "${GREEN}✓ Configurazione Apache valida${NC}"
-            
+
             # Riavvia Apache
             echo -e "\n${YELLOW}Riavvio Apache...${NC}"
             systemctl restart $APACHE_CMD
-            
+
             if [ $? -eq 0 ]; then
                 echo -e "${GREEN}✓ Apache riavviato con successo${NC}"
-                
+
                 # Verifica finale
                 print_section "Verifica Finale"
                 if check_etag_configuration; then
@@ -182,14 +185,14 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         else
             echo -e "${RED}✗ Errore nella configurazione di Apache${NC}"
             echo -e "${YELLOW}Ripristino del backup...${NC}"
-            
+
             # Ripristina i file originali
             for conf_file in "${config_files[@]}"; do
                 if [ -f "$backup_dir/$(basename "$conf_file")" ]; then
                     cp "$backup_dir/$(basename "$conf_file")" "$conf_file"
                 fi
             done
-            
+
             systemctl restart $APACHE_CMD
         fi
     else
@@ -219,10 +222,10 @@ echo -e "${BLUE}- Considerare l'uso di altri meccanismi di cache control${NC}"
 if command_exists curl; then
     print_section "Test Header"
     echo -e "${YELLOW}Verifica header ETag nelle risposte...${NC}"
-    
+
     # Attendi che Apache sia completamente riavviato
     sleep 2
-    
+
     echo -e "\n${BLUE}Headers di risposta:${NC}"
     curl -I http://localhost 2>/dev/null | grep -i "^etag:"
     if [ $? -ne 0 ]; then
