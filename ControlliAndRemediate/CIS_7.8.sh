@@ -58,27 +58,27 @@ print_section "Verifica Configurazione Cipher Suite"
 # Funzione per verificare la configurazione delle cipher suite
 check_ssl_ciphers() {
     echo "Controllo configurazione cipher suite SSL/TLS..."
-    
+
     # Verifica esistenza file di configurazione SSL
     if [ ! -f "$SSL_CONF_FILE" ]; then
         echo -e "${RED}✗ File di configurazione SSL non trovato: $SSL_CONF_FILE${NC}"
         issues_found+=("no_ssl_conf")
         return 1
     fi
-    
+
     # Cerca direttiva SSLCipherSuite
     if grep -q "^[[:space:]]*SSLCipherSuite" "$SSL_CONF_FILE"; then
         local cipher_line=$(grep "^[[:space:]]*SSLCipherSuite" "$SSL_CONF_FILE")
         echo -e "${BLUE}Configurazione attuale cipher suite: ${NC}$cipher_line"
-        
+
         # Verifica presenza di cipher suite di media sicurezza
         for cipher in "${medium_ciphers[@]}"; do
-            if echo "$cipher_line" | grep -qi "$cipher"; then
+            if echo "$cipher_line" | grep -qi ":$cipher"; then
                 echo -e "${RED}✗ Trovata cipher suite di media sicurezza: $cipher${NC}"
                 issues_found+=("medium_cipher_$cipher")
             fi
         done
-        
+
         # Verifica SSLHonorCipherOrder
         if ! grep -q "^[[:space:]]*SSLHonorCipherOrder[[:space:]]*on" "$SSL_CONF_FILE"; then
             echo -e "${RED}✗ SSLHonorCipherOrder non è configurato correttamente${NC}"
@@ -86,9 +86,9 @@ check_ssl_ciphers() {
         else
             echo -e "${GREEN}✓ SSLHonorCipherOrder è configurato correttamente${NC}"
         fi
-        
+
         # Verifica presenza di cipher suite forti
-        if echo "$cipher_line" | grep -qE "EECDH|EDH"; then
+        if echo "$cipher_line" | grep -qE "ALL"; then
             echo -e "${GREEN}✓ Trovate cipher suite forti${NC}"
         else
             echo -e "${RED}✗ Nessuna cipher suite forte configurata${NC}"
@@ -98,14 +98,14 @@ check_ssl_ciphers() {
         echo -e "${RED}✗ SSLCipherSuite non configurato${NC}"
         issues_found+=("no_cipher_suite")
     fi
-    
+
     # Verifica OpenSSL
     if command_exists openssl; then
         echo -e "\n${BLUE}Verifica supporto cipher suite con OpenSSL:${NC}"
         echo -e "${BLUE}Cipher suite disponibili:${NC}"
         openssl ciphers -v 'HIGH:!MEDIUM:!LOW:!aNULL:!eNULL:!3DES:!RC4' | head -n 5
     fi
-    
+
     if [ ${#issues_found[@]} -eq 0 ]; then
         return 0
     fi
@@ -120,49 +120,49 @@ if [ ${#issues_found[@]} -gt 0 ]; then
     echo -e "\n${YELLOW}Problemi rilevati nella configurazione delle cipher suite.${NC}"
     echo -e "${YELLOW}Vuoi procedere con la remediation? (s/n)${NC}"
     read -r risposta
-    
+
     if [[ "$risposta" =~ ^[Ss]$ ]]; then
         print_section "Esecuzione Remediation"
-        
+
         # Backup delle configurazioni
         timestamp=$(date +%Y%m%d_%H%M%S)_CIS_7.8
         backup_dir="/root/ssl_ciphers_backup_$timestamp"
         mkdir -p "$backup_dir"
-        
+
         echo "Creazione backup in $backup_dir..."
         cp "$SSL_CONF_FILE" "$backup_dir/"
-        
+
         echo -e "\n${YELLOW}Configurazione cipher suite SSL/TLS...${NC}"
-        
+
         # Definisci la nuova configurazione delle cipher suite
-        SECURE_CIPHERS="EECDH:EDH:!NULL:!SSLv2:!RC4:!aNULL:!3DES:!IDEA"
-        
+        SECURE_CIPHERS="ALL:!NULL:!SSLv2:!RC4:!aNULL:!3DES:!IDEA"
+
         # Cerca e sostituisci/aggiungi SSLCipherSuite
         if grep -q "^[[:space:]]*SSLCipherSuite" "$SSL_CONF_FILE"; then
             sed -i "s/^[[:space:]]*SSLCipherSuite.*/SSLCipherSuite $SECURE_CIPHERS/" "$SSL_CONF_FILE"
         else
             echo "SSLCipherSuite $SECURE_CIPHERS" >> "$SSL_CONF_FILE"
         fi
-        
+
         # Configura SSLHonorCipherOrder
         if grep -q "^[[:space:]]*SSLHonorCipherOrder" "$SSL_CONF_FILE"; then
             sed -i "s/^[[:space:]]*SSLHonorCipherOrder.*/SSLHonorCipherOrder on/" "$SSL_CONF_FILE"
         else
             echo "SSLHonorCipherOrder on" >> "$SSL_CONF_FILE"
         fi
-        
+
         # Verifica la configurazione di Apache
         echo -e "\n${YELLOW}Verifica configurazione Apache...${NC}"
         if $APACHE_CMD -t; then
             echo -e "${GREEN}✓ Configurazione Apache valida${NC}"
-            
+
             # Riavvia Apache
             echo -e "\n${YELLOW}Riavvio Apache...${NC}"
             systemctl restart $APACHE_CMD
-            
+
             if [ $? -eq 0 ]; then
                 echo -e "${GREEN}✓ Apache riavviato con successo${NC}"
-                
+
                 # Verifica finale
                 print_section "Verifica Finale"
                 if check_ssl_ciphers; then
@@ -193,20 +193,14 @@ if [ -d "$backup_dir" ]; then
     echo "2. Backup salvato in: $backup_dir"
 fi
 
-echo -e "\n${BLUE}Note sulla sicurezza delle cipher suite:${NC}"
-echo -e "${BLUE}- Le cipher suite di media sicurezza sono vulnerabili a vari attacchi${NC}"
-echo -e "${BLUE}- Utilizzare solo cipher suite forti (EECDH, EDH)${NC}"
-echo -e "${BLUE}- Mantenere SSLHonorCipherOrder attivo per usare l'ordine del server${NC}"
-echo -e "${BLUE}- Verificare la compatibilità con i client prima di applicare restrizioni${NC}"
-
 # Test SSL se possibile
 if command_exists openssl && command_exists curl; then
     print_section "Test Connessione SSL"
     echo -e "${YELLOW}Tentativo di connessione SSL al server locale...${NC}"
-    
+
     # Attendi che Apache sia completamente riavviato
     sleep 2
-    
+
     echo -e "\n${BLUE}Verifica cipher suite in uso:${NC}"
     if curl -k -v https://localhost/ 2>&1 | grep -q "SSL connection using"; then
         curl -k -v https://localhost/ 2>&1 | grep "SSL connection using"
