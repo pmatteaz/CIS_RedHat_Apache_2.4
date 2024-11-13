@@ -44,6 +44,9 @@ fi
 # Array per memorizzare i problemi trovati
 declare -a issues_found=()
 
+# Array dei file da controllare
+declare -a config_files=("$APACHE_CONF")
+
 print_section "Verifica Configurazione LimitRequestBody"
 
 # Funzione per verificare la configurazione di LimitRequestBody
@@ -53,9 +56,6 @@ check_limit_request_body() {
     local limit_found=false
     local config_file=""
     local value_correct=false
-    
-    # Array dei file da controllare
-    declare -a config_files=("$APACHE_CONF")
     
     # Aggiungi file da conf.d
     if [ -d "$APACHE_CONF_D" ]; then
@@ -153,6 +153,8 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         # Rimuovi eventuali configurazioni LimitRequestBody esistenti
         for conf_file in "${config_files[@]}"; do
             if [ -f "$conf_file" ]; then
+                sed -i '/# Set request body size limit/d' "$conf_file"
+                sed -i '/#[[:space:]]*LimitRequestBody[[:space:]]/d' "$conf_file"
                 sed -i '/^[[:space:]]*LimitRequestBody[[:space:]]/d' "$conf_file"
             fi
         done
@@ -212,12 +214,6 @@ fi
 if [ -d "$backup_dir" ]; then
     echo "3. Backup salvato in: $backup_dir"
 fi
-
-echo -e "\n${BLUE}Note sulla sicurezza LimitRequestBody:${NC}"
-echo -e "${BLUE}- Limita la dimensione massima delle richieste POST${NC}"
-echo -e "${BLUE}- Protegge da attacchi DoS e upload malevoli${NC}"
-echo -e "${BLUE}- 102400 bytes (100KB) è un limite ragionevole per molte applicazioni${NC}"
-echo -e "${BLUE}- Considerare limiti più alti per sezioni specifiche che richiedono upload${NC}"
 
 # Test finale del limite
 if command_exists curl; then
