@@ -44,6 +44,9 @@ fi
 # Array per memorizzare i problemi trovati
 declare -a issues_found=()
 
+# Array dei file da controllare
+declare -a config_files=("$APACHE_CONF")
+
 print_section "Verifica Configurazione LimitRequestFields"
 
 # Funzione per verificare la configurazione di LimitRequestFields
@@ -53,9 +56,6 @@ check_limit_request_fields() {
     local limit_found=false
     local config_file=""
     local value_correct=false
-    
-    # Array dei file da controllare
-    declare -a config_files=("$APACHE_CONF")
     
     # Aggiungi file da conf.d
     if [ -d "$APACHE_CONF_D" ]; then
@@ -152,6 +152,8 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         # Rimuovi eventuali configurazioni LimitRequestFields esistenti
         for conf_file in "${config_files[@]}"; do
             if [ -f "$conf_file" ]; then
+                sed -i '/# Set request fields limit/d' "$conf_file"
+                sed -i '/#[[:space:]]*LimitRequestFields[[:space:]][0-9]/d' "$conf_file"
                 sed -i '/^[[:space:]]*LimitRequestFields[[:space:]][0-9]/d' "$conf_file"
             fi
         done
@@ -211,12 +213,6 @@ fi
 if [ -d "$backup_dir" ]; then
     echo "3. Backup salvato in: $backup_dir"
 fi
-
-echo -e "\n${BLUE}Note sulla sicurezza LimitRequestFields:${NC}"
-echo -e "${BLUE}- Limita il numero massimo di headers HTTP${NC}"
-echo -e "${BLUE}- Protegge da attacchi DoS basati su header${NC}"
-echo -e "${BLUE}- Riduce il consumo di memoria per richiesta${NC}"
-echo -e "${BLUE}- Il valore 100 è sufficiente per la maggior parte delle applicazioni${NC}"
 
 # Test finale dei limiti se possibile
 if command_exists curl && command_exists python3; then
