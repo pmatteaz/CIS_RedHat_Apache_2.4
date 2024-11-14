@@ -27,7 +27,7 @@ find_directive_in_section() {
 
     # Verifica che il file esista
     if [ ! -f "$config_file" ]; then
-        echo "$REDErrore: File $config_file non trovato$NC" >&2
+        echo "${RED}Errore: File $config_file non trovato${NC}" >&2
         return 1
     fi
     # Legge il file riga per riga
@@ -81,14 +81,14 @@ test_find_directive() {
     local section="$2"
     local directive="$3"
     
-    echo -e "\n\033[1;34mCercando '$directive' nella sezione '$section' del file '$config_file'$NC"
+    echo -e "\n${BLUE}Cerco '$directive' nella sezione '$section' del file '$config_file'${NC}"
     
     local result
     if result=$(find_directive_in_section "$config_file" "$section" "$directive"); then
-        echo -e "\033[0;32mTrovato:$NC $result"
+        echo -e "${GREEN}Trovato:$NC $result"
         return 0
     else
-        echo -e "\033[0;31mNon trovato$NC"
+        echo -e "${RED}Non trovato$NC"
         return 1
     fi
 }
