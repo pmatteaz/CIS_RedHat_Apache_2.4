@@ -9,6 +9,14 @@
 # 0 se trovata, 1 se non trovata
 # Output:
 # Stampa il valore della direttiva se trovata
+
+# Colori per output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
 find_directive_in_section() {
     local config_file="$1"
     local section_name="$2"
@@ -19,7 +27,7 @@ find_directive_in_section() {
 
     # Verifica che il file esista
     if [ ! -f "$config_file" ]; then
-        echo "Errore: File $config_file non trovato" >&2
+        echo "$REDErrore: File $config_file non trovato$NC" >&2
         return 1
     fi
     # Legge il file riga per riga
@@ -73,14 +81,14 @@ test_find_directive() {
     local section="$2"
     local directive="$3"
     
-    echo -e "\n\033[1;34mCercando '$directive' nella sezione '$section' del file '$config_file'\033[0m"
+    echo -e "\n\033[1;34mCercando '$directive' nella sezione '$section' del file '$config_file'$NC"
     
     local result
     if result=$(find_directive_in_section "$config_file" "$section" "$directive"); then
-        echo -e "\033[0;32mTrovato:\033[0m $result"
+        echo -e "\033[0;32mTrovato:$NC $result"
         return 0
     else
-        echo -e "\033[0;31mNon trovato\033[0m"
+        echo -e "\033[0;31mNon trovato$NC"
         return 1
     fi
 }
