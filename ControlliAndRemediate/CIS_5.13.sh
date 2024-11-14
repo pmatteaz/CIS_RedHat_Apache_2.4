@@ -46,6 +46,9 @@ ALLOWED_EXTENSIONS=(
     "gif"
     "ico"
     "pdf"
+    "jsp"
+    "pl"
+    "php"
 )
 
 # Funzione per verificare la configurazione esistente
