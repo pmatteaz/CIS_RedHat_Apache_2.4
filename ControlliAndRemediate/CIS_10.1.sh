@@ -116,7 +116,7 @@ if [ ${#issues_found[@]} -gt 0 ]; then
 
         # Backup delle configurazioni
         timestamp=$(date +%Y%m%d_%H%M%S)_CIS_10.1
-        backup_dir="/root/limit_request_line_backup_$timestamp"
+        backup_dir="/root/apache_limit_request_line_backup_$timestamp"
         mkdir -p "$backup_dir"
 
         echo "Creazione backup in $backup_dir..."
