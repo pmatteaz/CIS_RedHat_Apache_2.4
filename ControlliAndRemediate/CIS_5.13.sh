@@ -121,8 +121,8 @@ implement_missing_config() {
     local need_restart=false
 
     # Backup della configurazione
-        timestamp=$(date +%Y%m%d_%H%M%S)_CIS_3.8
-        backup_dir="/root/apache_coredump_backup_$timestamp"
+        timestamp=$(date +%Y%m%d_%H%M%S)_CIS_5.13
+        backup_dir="/root/apache_EstensioniFile_backup_$timestamp"
         mkdir -p "$backup_dir"
 
         echo "Creazione backup della configurazione in $backup_dir..."
