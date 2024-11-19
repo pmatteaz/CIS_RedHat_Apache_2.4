@@ -74,7 +74,7 @@ check_pidfile() {
 
     # 1. Trova la directory del PidFile
     local server_root=$(get_server_root)
-    local pidfile_path="`httpd -V | grep DEFAULT_PIDLOG | cut -d"=" -f2 |tr -d '"'`"
+    local pidfile_path="`grep -i PidFile $APACHE_CONF | grep -v \# | cut -d" " -f2 `"
     local document_root=$(get_document_root)
 
     if [ -z "$pidfile_path" ]; then
