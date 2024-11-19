@@ -1,4 +1,5 @@
 #!/bin/bash
+# da mettere apposto non fa remediation correttamente
 
 # Colori per output
 RED='\033[0;31m'
