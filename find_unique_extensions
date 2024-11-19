@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# Funzione per trovare tutte le estensioni uniche in una directory
+find_unique_extensions() {
+    local directory="$1"
+    
+    if [ -z "$directory" ]; then
+        directory="."
+    fi
+    
+    # Verifica se la directory esiste
+    if [ ! -d "$directory" ]; then
+        echo "Errore: La directory $directory non esiste" >&2
+        exit 1
+    fi
+    
+    # Trova tutte le estensioni, le pulisce e le ordina
+    extensions=($(find "$directory" -type f -name "*.*" | 
+                  sed 's/.*\.//' | 
+                  tr '[:upper:]' '[:lower:]' | 
+                  sort -u))
+    
+    # Stampa il risultato come array
+    echo "extensions=("
+    for ext in "${extensions[@]}"; do
+        echo "    \"$ext\""
+    done
+    echo ")"
+    
+    # Stampa anche il conteggio totale
+    echo -e "\nTotale estensioni uniche trovate: ${#extensions[@]}"
+}
+
+# Esegui la funzione con il parametro fornito
+find_unique_extensions "$1"
