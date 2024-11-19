@@ -221,22 +221,3 @@ echo "3. DocumentRoot: $(get_document_root)"
 if [ -d "$backup_dir" ]; then
     echo "4. Backup salvato in: $backup_dir"
 fi
-
-echo -e "\n${BLUE}Note sulla sicurezza PidFile:${NC}"
-echo -e "${BLUE}- Il file PID deve essere in una directory sicura${NC}"
-echo -e "${BLUE}- La directory non deve essere accessibile via web${NC}"
-echo -e "${BLUE}- Solo root deve poter scrivere nella directory${NC}"
-echo -e "${BLUE}- I permessi corretti proteggono da manomissioni${NC}"
-
-# Verifica finale del processo Apache
-if pgrep -x "$APACHE_CMD" > /dev/null; then
-    echo -e "\n${GREEN}✓ Processo Apache in esecuzione${NC}"
-    pidfile=$(grep "^PidFile" "$APACHE_CONF" | awk '{print $2}' | tr -d '"')
-    if [ -f "$pidfile" ]; then
-        echo -e "${GREEN}✓ File PID presente: $pidfile${NC}"
-    else
-        echo -e "${RED}✗ File PID non trovato${NC}"
-    fi
-else
-    echo -e "\n${RED}✗ Processo Apache non in esecuzione${NC}"
-fi
