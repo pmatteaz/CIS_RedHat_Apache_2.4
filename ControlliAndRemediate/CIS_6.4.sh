@@ -1,5 +1,7 @@
 #!/bin/bash
 # da mettere apposto non fa remediation correttamente
+# verificare problema nome file
+#
 
 # Colori per output
 RED='\033[0;31m'
