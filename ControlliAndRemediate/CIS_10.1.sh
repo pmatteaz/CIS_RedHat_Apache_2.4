@@ -201,23 +201,3 @@ fi
 if [ -d "$backup_dir" ]; then
     echo "3. Backup salvato in: $backup_dir"
 fi
-
-# Test del limite se possibile
-if command_exists curl; then
-    print_section "Test Limite Richiesta"
-    echo -e "${YELLOW}Test risposta server con URL lungo...${NC}"
-
-    # Attendi che Apache sia completamente riavviato
-    sleep 2
-
-    # Crea un URL molto lungo per il test
-    long_url="http://localhost/$(head -c 600 /dev/zero | tr '\0' 'a')"
-
-    echo -e "\n${BLUE}Test limite riga richiesta:${NC}"
-    if ! curl -s -o /dev/null "$long_url"; then
-        echo -e "${GREEN}✓ Il server rifiuta correttamente le richieste troppo lunghe${NC}"
-    else
-        echo -e "${YELLOW}! Test del limite non conclusivo${NC}"
-    fi
-fi
-
