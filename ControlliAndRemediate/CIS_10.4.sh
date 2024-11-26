@@ -215,34 +215,3 @@ fi
 if [ -d "$backup_dir" ]; then
     echo "3. Backup salvato in: $backup_dir"
 fi
-
-# Test finale del limite
-if command_exists curl; then
-    print_section "Test Finale Limite"
-    echo -e "${YELLOW}Test risposta server con POST di diverse dimensioni...${NC}"
-    
-    # Attendi che Apache sia completamente riavviato
-    sleep 2
-    
-    # Crea file temporanei per il test
-    small_file=$(mktemp)
-    large_file=$(mktemp)
-    
-    dd if=/dev/zero of="$small_file" bs=1024 count=90 2>/dev/null
-    dd if=/dev/zero of="$large_file" bs=1024 count=110 2>/dev/null
-    
-    # Test con file accettabile (90KB)
-    echo -e "\n${BLUE}Test con POST di 90KB:${NC}"
-    if curl -s -o /dev/null -F "file=@$small_file" http://localhost/; then
-        echo -e "${GREEN}✓ Il server accetta POST di dimensione corretta${NC}"
-    fi
-    
-    # Test con file troppo grande (110KB)
-    echo -e "\n${BLUE}Test con POST di 110KB:${NC}"
-    if ! curl -s -o /dev/null -F "file=@$large_file" http://localhost/; then
-        echo -e "${GREEN}✓ Il server rifiuta POST troppo grandi${NC}"
-    fi
-    
-    # Pulizia
-    rm -f "$small_file" "$large_file"
-fi
