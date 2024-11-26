@@ -81,6 +81,7 @@ if echo "$ACTIVE_MODULES" | grep -q "status_module"; then
         # Backup dei file di configurazione
         if [ "$APACHE_CMD" = "httpd" ]; then
             cp -r "$APACHE_CONFIG_DIR/conf.modules.d" "$backup_dir/"
+            cp -r "$APACHE_CONFIG_DIR/conf.d" "$backup_dir/"
             cp -r "$APACHE_CONFIG_DIR/conf" "$backup_dir/"
         else
             cp -r "$APACHE_CONFIG_DIR/mods-enabled" "$backup_dir/"
