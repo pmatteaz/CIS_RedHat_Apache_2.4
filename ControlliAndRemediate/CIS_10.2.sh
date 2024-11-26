@@ -213,38 +213,3 @@ fi
 if [ -d "$backup_dir" ]; then
     echo "3. Backup salvato in: $backup_dir"
 fi
-
-# Test finale dei limiti se possibile
-if command_exists curl && command_exists python3; then
-    print_section "Test Finale Limiti"
-    echo -e "${YELLOW}Test risposta server con headers multipli...${NC}"
-    
-    # Attendi che Apache sia completamente riavviato
-    sleep 2
-    
-    # Crea uno script Python temporaneo per generare la richiesta
-    temp_script=$(mktemp)
-    cat > "$temp_script" << 'EOL'
-import http.client
-headers = {}
-for i in range(101):
-    headers[f'X-Test-{i}'] = 'value'
-try:
-    conn = http.client.HTTPConnection('localhost')
-    conn.request('GET', '/', headers=headers)
-    response = conn.getresponse()
-    print(f"Status: {response.status}")
-except Exception as e:
-    print(f"Error: {e}")
-EOL
-
-    echo -e "\n${BLUE}Test con 101 headers:${NC}"
-    if ! python3 "$temp_script"; then
-        echo -e "${GREEN}✓ Il server gestisce correttamente il limite di headers${NC}"
-    else
-        echo -e "${YELLOW}! Test del limite non conclusivo${NC}"
-    fi
-    
-    # Pulizia
-    rm -f "$temp_script"
-fi
