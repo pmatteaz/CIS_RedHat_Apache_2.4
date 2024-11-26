@@ -1,4 +1,5 @@
 #!/bin/bash
+# Aggiungere rinomina file /etc/httpd/conf.d/userdir.conf
 
 # Colori per output
 RED='\033[0;31m'
@@ -112,7 +113,9 @@ if echo "$ACTIVE_MODULES" | grep -q "userdir_module"; then
                 sed -i 's/^[[:space:]]*<Directory.*public_html>/##&/' "$config"
                 sed -i 's/^[[:space:]]*<\/Directory>/##&/' "$config"
             done
-
+        # Rinomina file 
+          mv /etc/httpd/conf.d/userdir.conf /etc/httpd/conf.d/__userdir.conf__
+          
         # Per sistemi Debian
         else
             if ! a2dismod userdir; then
