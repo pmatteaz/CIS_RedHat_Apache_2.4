@@ -65,7 +65,7 @@ check_permissions() {
         perms=$(stat -c '%a' "$file")
         ultima_cifra="${perms: -1}"
         perms=$ultima_cifra
-        if [ $((perms & 2)) -eq 2 ]; then
+        if [ ((perms & 2)) -eq 2 ]; then
             echo -e "${RED}✗ Trovato file con permessi di scrittura 'other': $file (${perms})${NC}"
             wrong_permissions+=("$file")
         fi
@@ -115,7 +115,7 @@ if [ ${#wrong_permissions[@]} -gt 0 ]; then
                 if [ -d "$file" ]; then
                     chmod o-w "$file"
                     # Per directory, assicurati che rimangano eseguibili se necessario
-                    if [ $((original_perms & 1)) -eq 1 ]; then
+                    if [ ((original_perms & 1)) -eq 1 ]; then
                         chmod o+x "$file"
                     fi
                 else
@@ -155,7 +155,7 @@ if [ ${#wrong_permissions[@]} -gt 0 ]; then
         for file in "${wrong_permissions[@]}"; do
             if [ -e "$file" ]; then
                 perms=$(stat -c '%a' "$file")
-                if [ $((perms & 2)) -eq 2 ]; then
+                if [ ((perms & 2)) -eq 2 ]; then
                     echo -e "${RED}✗ $file ha ancora permessi di scrittura 'other' (${perms})${NC}"
                     ((errors++))
                 else
