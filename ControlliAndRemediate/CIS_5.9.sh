@@ -1,4 +1,5 @@
 #!/bin/bash
+# Mettere apposto la verifica "/etc/httpd/conf.d/protocol-security.conf"
 
 # Colori per output
 RED='\033[0;31m'
