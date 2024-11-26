@@ -86,20 +86,6 @@ check_server_tokens() {
         echo -e "${RED}✗ ServerTokens non configurato${NC}"
         issues_found+=("no_server_tokens")
     fi
-
-    # Verifica header server tramite curl se possibile
-    #if command_exists curl; then
-    #    echo -e "\n${BLUE}Verifica header Server...${NC}"
-    #    local server_header=$(curl -sI http://localhost 2>/dev/null | grep -i "^Server:")
-    #    if [ -n "$server_header" ]; then
-    #        echo -e "Header Server attuale: $server_header"
-    #        if echo "$server_header" | grep -qiE "apache.*\/.*|apache.*win|apache.*\(.*\)"; then
-    #            echo -e "${RED}✗ L'header Server rivela troppe informazioni${NC}"
-    #            issues_found+=("verbose_header")
-    #        fi
-    #    fi
-    #fi
-
     if [ ${#issues_found[@]} -eq 0 ]; then
         return 0
     fi
@@ -186,22 +172,3 @@ if [ ${#issues_found[@]} -gt 0 ]; then
 else
     echo -e "\n${GREEN}✓ La configurazione ServerTokens è corretta${NC}"
 fi
-
-# Riepilogo finale
-print_section "Riepilogo Finale"
-echo "1. File configurazione: $CONF_TO_USE"
-if [ -d "$backup_dir" ]; then
-    echo "2. Backup salvato in: $backup_dir"
-fi
-
-# Test finale dell'header Server
-#if command_exists curl; then
-#    print_section "Test Header Server"
-#    echo -e "${YELLOW}Verifica header Server dopo la configurazione...${NC}"
-#
-#    # Attendi che Apache sia completamente riavviato
-#    sleep 2
-#
-#    echo -e "\n${BLUE}Header Server attuale:${NC}"
-#    curl -sI http://localhost 2>/dev/null | grep -i "^Server:"
-#fi
