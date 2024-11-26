@@ -1,4 +1,5 @@
 #!/bin/bash
+# Verificare Permessi directory cache non corretti non fa remediation
 
 # Colori per output
 RED='\033[0;31m'
