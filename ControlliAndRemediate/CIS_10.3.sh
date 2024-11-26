@@ -210,30 +210,3 @@ fi
 if [ -d "$backup_dir" ]; then
     echo "3. Backup salvato in: $backup_dir"
 fi
-
-#echo -e "\n${BLUE}Note sulla sicurezza LimitRequestFieldsize:${NC}"
-#echo -e "${BLUE}- Limita la dimensione massima di ogni header HTTP${NC}"
-#echo -e "${BLUE}- Protegge da attacchi buffer overflow${NC}"
-#echo -e "${BLUE}- Riduce il rischio di denial of service${NC}"
-#echo -e "${BLUE}- Il valore 1024 è sufficiente per la maggior parte delle applicazioni${NC}"
-
-# Test finale del limite
-#if command_exists curl; then
-#    print_section "Test Finale Limite"
-#    echo -e "${YELLOW}Test risposta server con header di diverse dimensioni...${NC}"
-    
-    # Attendi che Apache sia completamente riavviato
-#    sleep 2
-    
-    # Test con header di dimensione accettabile (1000 bytes)
-#   echo -e "\n${BLUE}Test con header di 1000 bytes:${NC}"
-#    if curl -s -o /dev/null -H "X-Test: $(printf 'X%.0s' {1..1000})" http://localhost/; then
-#        echo -e "${GREEN}✓ Il server accetta header di dimensione corretta${NC}"
-#    fi
-    
-    # Test con header troppo lungo (1100 bytes)
-#    echo -e "\n${BLUE}Test con header di 1100 bytes:${NC}"
-#    if ! curl -s -o /dev/null -H "X-Test: $(printf 'X%.0s' {1..1100})" http://localhost/; then
-#        echo -e "${GREEN}✓ Il server rifiuta header troppo lunghi${NC}"
-#    fi
-#fi
