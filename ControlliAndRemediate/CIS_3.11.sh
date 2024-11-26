@@ -59,7 +59,7 @@ check_group_write() {
         
         # Verifica se il file ha permessi di scrittura per il gruppo
         perms=$(stat -c '%A' "$file")
-        if [[ ${perms:5:1} == "w" ]]; thenn
+        if [[ ${perms:5:1} == "w" ]]; then
             echo -e "${RED}✗ Trovato file con permessi di scrittura del gruppo: $file (${perms})${NC}"
             wrong_permissions+=("$file")
         fi
