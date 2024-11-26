@@ -124,7 +124,7 @@ if [ ${#wrong_permissions[@]} -gt 0 ]; then
 
                 # Verifica il risultato
                 new_perms=$(stat -c '%a' "$file")
-                if [ $((new_perms & 2)) -eq 0 ]; then
+                if [ ((new_perms & 2)) -eq 0 ]; then
                     echo -e "${GREEN}✓ Permessi corretti con successo per $file (${original_perms} -> ${new_perms})${NC}"
                 else
                     echo -e "${RED}✗ Errore nella correzione dei permessi per $file${NC}"
