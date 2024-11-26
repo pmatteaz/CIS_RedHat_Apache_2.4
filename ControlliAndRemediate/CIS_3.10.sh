@@ -1,4 +1,6 @@
 #!/bin/bash
+# Da mettere apposto.
+
 
 # Colori per output
 RED='\033[0;31m'
