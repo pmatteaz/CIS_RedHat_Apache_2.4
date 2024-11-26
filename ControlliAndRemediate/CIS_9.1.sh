@@ -197,23 +197,3 @@ if [ -d "$backup_dir" ]; then
     echo "3. Backup salvato in: $backup_dir"
 fi
 
-# Test timeout se possibile
-if command_exists curl && command_exists timeout; then
-    print_section "Test Timeout"
-    echo -e "${YELLOW}Verifica risposta del server con timeout...${NC}"
-
-    # Attendi che Apache sia completamente riavviato
-    sleep 2
-
-    echo -e "\n${BLUE}Test connessione rapida:${NC}"
-    if curl -ks -I https://localhost > /dev/null; then
-        echo -e "${GREEN}✓ Il server risponde correttamente a richieste rapide${NC}"
-    fi
-
-    echo -e "\n${BLUE}Test timeout connessione:${NC}"
-    if ! timeout 11 curl -ks -o /dev/null https://localhost/nonexistent; then
-        echo -e "${GREEN}✓ Il server chiude correttamente le connessioni dopo il timeout${NC}"
-    else
-        echo -e "${YELLOW}! Impossibile verificare il comportamento del timeout${NC}"
-    fi
-fi
