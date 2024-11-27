@@ -1,4 +1,5 @@
 #!/bin/bash
+# Da verificare perchè non va la fix 
 
 # Colori per output
 RED='\033[0;31m'
