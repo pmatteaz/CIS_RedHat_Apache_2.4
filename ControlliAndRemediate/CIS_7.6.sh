@@ -1,4 +1,5 @@
 #!/bin/bash
+# Verifica se ci sono configurazioni vhosts e inseriscr la fix o se c'è già la modifica
 
 # Colori per output
 RED='\033[0;31m'
