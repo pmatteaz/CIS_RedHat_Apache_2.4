@@ -118,8 +118,8 @@ if [ ${#wrong_permissions[@]} -gt 0 ]; then
         for item in "${wrong_permissions[@]}"; do
             echo "Rimozione permessi di scrittura del gruppo per: $item"
             if [ -d "$item" ]; then
-                current_perms=$(stat -c "%A" "$file" | cut -c5-7)
-                if [ $current_perms =~ w ]; then
+                current_perms=$(stat -c "%A" "$file" )
+                if [ ${current_perms:5:3} =~ w ]; then
                     # Rimuovi w
                     chmod g-w,g+x "$item"
                 fi
@@ -128,8 +128,8 @@ if [ ${#wrong_permissions[@]} -gt 0 ]; then
             fi
             
             # Verifica la correzione
-            new_perms=current_perms=$(stat -c "%A" "$file" | cut -c5-7)
-            if [ ! $new_perms =~ w ]; then 
+            new_perms=current_perms=$(stat -c "%A" "$file" )
+            if [ ! ${new_perms:5:3} =~ w ]; then 
                 echo -e "${GREEN}✓ Permessi corretti con successo per $item${NC}"
             else
                 echo -e "${RED}✗ Errore nella correzione dei permessi per $item${NC}"
