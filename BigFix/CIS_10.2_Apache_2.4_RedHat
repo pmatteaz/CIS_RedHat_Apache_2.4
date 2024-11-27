@@ -1,1 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BES xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="BES.xsd">
+    <Fixlet>
+        <Title>CIS Apache 2.4 Benchmark - 10.2 Ensure LimitRequestFields is Set</Title>
+        <Description><![CDATA[
+This Fixlet implements CIS Apache 2.4 Benchmark control 10.2 by setting LimitRequestFields to 100.
+This setting helps protect against denial of service attacks by limiting the number of request header fields.
 
+Remediation will add or update the LimitRequestFields directive in the appropriate Directory contexts.
+        ]]></Description>
+        <Relevance>unix of operating system</Relevance>
+        <Relevance>exists file "/etc/redhat-release"</Relevance>
+        <Relevance>exists file "/etc/httpd/conf/httpd.conf"</Relevance>
+        <Relevance>not exists lines whose (it contains "LimitRequestFields 100") of file "/etc/httpd/conf/httpd.conf"</Relevance>
+        <Category>Security Settings</Category>
+        <Source>CIS Apache 2.4 Benchmark</Source>
+        <SourceID>10.2</SourceID>
+        <SourceSeverity>Medium</SourceSeverity>
+        <SourceReleaseDate>2021-01-01</SourceReleaseDate>
+        <DefaultAction ID="Action1">
+            <Description>
+                <PreLink>Click </PreLink>
+                <Link>here</Link>
+                <PostLink> to set LimitRequestFields to 100 in Apache configuration.</PostLink>
+            </Description>
+            <ActionScript MIMEType="application/x-Fixlet-Windows-Shell">
+#!/bin/bash
+
+# Backup the original configuration
+cp /etc/httpd/conf/httpd.conf /etc/httpd/conf/httpd.conf.bak.$(date +%Y%m%d_%H%M%S)
+
+# Function to add/update LimitRequestFields in a Directory section
+update_directory_section() {
+    local dir="$1"
+    local conf_file="/etc/httpd/conf/httpd.conf"
+    local temp_file=$(mktemp)
+    
+    awk -v dir="$dir" '
+    BEGIN { in_section = 0; limit_added = 0 }
+    {
+        if ($0 ~ "^[[:space:]]*<Directory[[:space:]]+" dir "[[:space:]]*>") {
+            in_section = 1
+            print $0
+            next
+        }
+        if (in_section && $0 ~ /^[[:space:]]*LimitRequestFields/) {
+            print "    LimitRequestFields 100"
+            limit_added = 1
+            next
+        }
+        if (in_section && $0 ~ "^[[:space:]]*</Directory>") {
+            if (!limit_added) {
+                print "    LimitRequestFields 100"
+            }
+            in_section = 0
+            limit_added = 0
+        }
+        print $0
+    }' "$conf_file" > "$temp_file"
+    
+    mv "$temp_file" "$conf_file"
+}
+
+# Add/update LimitRequestFields in root Directory section
+if ! grep -q "^[[:space:]]*<Directory[[:space:]]*/>.*LimitRequestFields" /etc/httpd/conf/httpd.conf; then
+    if grep -q "^[[:space:]]*<Directory[[:space:]]*/>" /etc/httpd/conf/httpd.conf; then
+        update_directory_section "/"
+    else
+        sed -i '1i\<Directory />\n    LimitRequestFields 100\n</Directory>\n' /etc/httpd/conf/httpd.conf
+    fi
+fi
+
+# Add/update LimitRequestFields in DocumentRoot Directory section
+docroot=$(grep -i "^[[:space:]]*DocumentRoot" /etc/httpd/conf/httpd.conf | awk '{print $2}' | tr -d '"')
+if [ -n "$docroot" ]; then
+    if grep -q "^[[:space:]]*<Directory[[:space:]]*$docroot" /etc/httpd/conf/httpd.conf; then
+        update_directory_section "$docroot"
+    else
+        echo -e "\n<Directory $docroot>\n    LimitRequestFields 100\n</Directory>" >> /etc/httpd/conf/httpd.conf
+    fi
+fi
+
+# Test the Apache configuration
+if /usr/sbin/httpd -t; then
+    # Restart Apache if test is successful
+    systemctl restart httpd
+else
+    # Restore backup if test fails
+    cp /etc/httpd/conf/httpd.conf.bak.$(date +%Y%m%d_%H%M%S) /etc/httpd/conf/httpd.conf
+    exit 1
+fi
+            </ActionScript>
+        </DefaultAction>
+    </Fixlet>
+</BES>
