@@ -1,4 +1,5 @@
 #!/bin/bash
+# Verificare non mette la scritta correttamente nel file.
 
 # Colori per output
 RED='\033[0;31m'
