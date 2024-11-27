@@ -39,14 +39,14 @@ if ! rpm -q httpd >/dev/null 2>&1; then
 fi
 
 # Verifica il venditore del pacchetto
-vendor=$(rpm -qi httpd | grep "Vendor" | awk -F': ' '{print $2}')
+vendor=$(rpm -qi httpd | grep "Vendor" )
 
 # Lista dei vendor considerati affidabili
 trusted_vendors=("Red Hat, Inc." "CentOS" "Fedora Project" "Rocky Enterprise Software Foundation" "AlmaLinux Unlimited")
 
 vendor_trusted=0
 for trusted_vendor in "${trusted_vendors[@]}"; do
-    if [[ "$vendor" == *"$trusted_vendor"* ]]; then
+    if [[ "$vendor" =~ *"$trusted_vendor"* ]]; then
         vendor_trusted=1
         break
     fi
