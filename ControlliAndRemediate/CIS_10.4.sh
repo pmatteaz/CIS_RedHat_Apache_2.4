@@ -1,4 +1,5 @@
 #!/bin/bash
+# Da verificare perchè non va la fix 
 # Da rivedere i controlli 
 
 # Colori per output
