@@ -74,10 +74,8 @@ check_group_write() {
         
         perms=$(stat -c '%A' "$dir")
         if [[ ${perms:5:3} =~ w ]]; then
-           echo "Directory ha permessi di scrittura per il gruppo"
-        else
-            echo -e "${RED}✗ Trovata directory con permessi di scrittura del gruppo: $dir (${perms:5:3})${NC}"
-            wrong_permissions+=("$dir")
+           echo -e "${RED}✗ Trovata directory con permessi di scrittura del gruppo: $dir (${perms:5:3})${NC}"
+           wrong_permissions+=("$dir")
         fi
     done < <(find "$path" -type d -print0)
 }
