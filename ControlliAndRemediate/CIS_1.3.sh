@@ -46,7 +46,7 @@ trusted_vendors=("Red Hat, Inc." "CentOS" "Fedora Project" "Rocky Enterprise Sof
 
 vendor_trusted=0
 for trusted_vendor in "${trusted_vendors[@]}"; do
-    if [[ "$vendor" =~ *"$trusted_vendor"* ]]; then
+    if [[ "$vendor" =~ "$trusted_vendor" ]]; then
         vendor_trusted=1
         break
     fi
