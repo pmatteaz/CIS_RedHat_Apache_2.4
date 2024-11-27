@@ -1,5 +1,5 @@
 #!/bin/bash
-# Verificare Permessi directory cache non corretti non fa remediation
+# Verificare se basta mettere conf in ssl.conf
 
 # Colori per output
 RED='\033[0;31m'
