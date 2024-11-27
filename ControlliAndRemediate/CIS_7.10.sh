@@ -137,10 +137,12 @@ if [ ${#issues_found[@]} -gt 0 ]; then
             mkdir -p "$CACHE_DIR"
             chmod 755 "$CACHE_DIR"
             if [ "$SYSTEM_TYPE" = "redhat" ]; then
-                chown apache:apache "$CACHE_DIR"
+                chown root:apache "$CACHE_DIR"
             else
-                chown www-data:www-data "$CACHE_DIR"
+                chown root:www-data "$CACHE_DIR"
             fi
+        else
+        chmod 755 "$CACHE_DIR"
         fi
         
         # Configura OCSP Stapling
