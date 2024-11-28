@@ -1,5 +1,5 @@
 #!/bin/bash
-## Manuale da mettere apposto.
+
 
 # Colori per output
 RED='\033[0;31m'
