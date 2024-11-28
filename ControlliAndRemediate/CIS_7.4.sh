@@ -134,14 +134,25 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         cp "$SSL_CONF_FILE" "$backup_dir/"
         
         echo -e "\n${YELLOW}Aggiornamento configurazione protocolli SSL/TLS...${NC}"
-        
+        # test di che versione openssl viene usata
+        openssl_ver=$(openssl version | cut -d" " -f2)
         # Cerca la linea SSLProtocol esistente
         if grep -q "^[[:space:]]*SSLProtocol" "$SSL_CONF_FILE"; then
             # Sostituisci la linea esistente
-            sed -i 's/^[[:space:]]*SSLProtocol.*/SSLProtocol -all +TLSv1.2 +TLSv1.3/' "$SSL_CONF_FILE"
+             if [[ ${openssl_ver:0:1}  >= 1 && ${openssl_ver:2:1}  >= 1 && ${openssl_ver:4:1} >= 1 ]]
+             then
+              sed -i 's/^[[:space:]]*SSLProtocol.*/SSLProtocol -all +TLSv1.2 +TLSv1.3/' "$SSL_CONF_FILE"
+             else 
+              sed -i 's/^[[:space:]]*SSLProtocol.*/SSLProtocol -all +TLSv1.2/' "$SSL_CONF_FILE"
+             fi
         else
             # Aggiungi la nuova configurazione
+            if [[ ${openssl_ver:0:1}  >= 1 && ${openssl_ver:2:1}  >= 1 && ${openssl_ver:4:1} >= 1 ]]
+            then
             echo "SSLProtocol -all +TLSv1.2 +TLSv1.3" >> "$SSL_CONF_FILE"
+            else
+            echo "SSLProtocol -all +TLSv1.2" >> "$SSL_CONF_FILE"
+            fi
         fi
         
         # Verifica la configurazione di Apache
