@@ -1,5 +1,5 @@
 #!/bin/bash
-# da mettere apposto non fa remediation correttamente
+# da mettere apposto ripristina il backup perchè va male il controllo
 # verificare problema nome file
 #
 
