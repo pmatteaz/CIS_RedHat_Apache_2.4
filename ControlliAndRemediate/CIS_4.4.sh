@@ -222,9 +222,3 @@ done
 if [ -d "$backup_dir" ]; then
     echo "2. Backup salvato in: $backup_dir"
 fi
-
-echo -e "\n${BLUE}Nota: La disabilitazione globale di AllowOverride garantisce che:${NC}"
-echo -e "${BLUE}- Non sia possibile sovrascrivere le configurazioni di sicurezza in nessuna directory${NC}"
-echo -e "${BLUE}- La configurazione del server rimanga centralizzata e sotto controllo${NC}"
-echo -e "${BLUE}- Si migliori la sicurezza impedendo modifiche locali non autorizzate${NC}"
-echo -e "${BLUE}- Si ottengano migliori prestazioni evitando la lettura dei file .htaccess${NC}"
