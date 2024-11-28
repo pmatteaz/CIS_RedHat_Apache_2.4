@@ -153,7 +153,7 @@ check_root_option() {
         return 1
     elif ! $correct_config; then
         echo -e "${RED}✗ Options non è configurato correttamente come None${NC}"
-        issues_found+=("incorrect_override")
+        issues_found+=("incorrect_options")
         return 1
     else
         echo -e "${GREEN}✓ Options è configurato correttamente come None${NC}"
@@ -166,7 +166,7 @@ check_root_option "$MAIN_CONFIG"
 
 # Se ci sono problemi, offri remediation
 if [ ${#issues_found[@]} -gt 0 ]; then
-    echo -e "\n${YELLOW}Sono stati trovati problemi con la configurazione AllowOverride.${NC}"
+    echo -e "\n${YELLOW}Sono stati trovati problemi con la configurazione Option.${NC}"
     echo -e "${YELLOW}Vuoi procedere con la remediation? (s/n)${NC}"
     read -r risposta
 
@@ -186,7 +186,7 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         if grep -q "^<Directory />" "$MAIN_CONFIG"; then
             echo -e "\n${YELLOW}Aggiornamento configurazione esistente...${NC}"
 
-            # Usa sed per modificare o aggiungere AllowOverride None
+            # Usa sed per modificare o aggiungere Options None
             if find_directive_in_section "$MAIN_CONFIG" "<Directory />" "Options" ; then
                 # Modifica la direttiva esistente
                 sed -i '/<Directory \/>/,/<\/Directory>/ s/Options.*/Options None/' "$MAIN_CONFIG"
@@ -241,9 +241,3 @@ echo "1. File di configurazione: $MAIN_CONFIG"
 if [ -d "$backup_dir" ]; then
     echo "2. Backup salvato in: $backup_dir"
 fi
-
-echo -e "\n${BLUE}Nota: La disabilitazione di AllowOverride per la directory root garantisce che:${NC}"
-echo -e "${BLUE}- Non sia possibile sovrascrivere le configurazioni di sicurezza tramite .htaccess${NC}"
-echo -e "${BLUE}- La configurazione del server rimanga centralizzata e controllata${NC}"
-echo -e "${BLUE}- Si riduca il rischio di modifiche non autorizzate alla configurazione${NC}"
-echo -e "${BLUE}- Le prestazioni del server siano migliori (no controllo .htaccess)${NC}"
