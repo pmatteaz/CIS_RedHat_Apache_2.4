@@ -152,6 +152,10 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         
         echo "Creazione backup in $backup_dir..."
         [ -f "$LOGROTATE_CONF" ] && cp -p "$LOGROTATE_CONF" "$backup_dir/"
+        # Estrai path file di log 
+        path_logrotate=$(grep "\{" "$LOGROTATE_CONF" | cut -d" " -f1)
+        path_log=dirname $path_logrotate
+        
         
         # Installa logrotate se necessario
         if ! command_exists logrotate; then
