@@ -1,6 +1,7 @@
 #!/bin/bash
 # Mettere apposto la verifica "/etc/httpd/conf.d/protocol-security.conf"
 # disabilita solo in protocol-security.conf da mettere apposto il controllo
+# Capire se basta mettere la direttiva sotto protocol-security.conf
 
 # Colori per output
 RED='\033[0;31m'
