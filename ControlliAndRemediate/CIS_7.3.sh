@@ -152,9 +152,9 @@ if [ ${#issues_found[@]} -gt 0 ]; then
             chown root:root "$key_file"
             
             # Correggi permessi directory
-            #key_dir=$(dirname "$key_file")
-            #chmod 700 "$key_dir"
-            #chown root:root "$key_dir"
+            key_dir=$(dirname "$key_file")
+            chmod 700 "$key_dir"
+            chown root:root "$key_dir"
             
             # Verifica se la chiave è valida
             #if ! openssl rsa -in "$key_file" -check -noout &>/dev/null; then
