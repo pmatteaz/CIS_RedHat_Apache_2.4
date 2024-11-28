@@ -17,7 +17,7 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-print_section "Verifica CIS 2.5: Modulo Status"
+print_section "Verifica CIS 2.5: Autoindex Module Is Disabled"
 
 # Verifica se Apache è installato
 if ! command_exists httpd && ! command_exists apache2; then
