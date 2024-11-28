@@ -139,7 +139,7 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         # Cerca la linea SSLProtocol esistente
         if grep -q "^[[:space:]]*SSLProtocol" "$SSL_CONF_FILE"; then
             # Sostituisci la linea esistente
-             if [[ ${openssl_ver:0:1}  >= 1 && ${openssl_ver:2:1}  >= 1 && ${openssl_ver:4:1} >= 1 ]]
+             if [[ ${openssl_ver:0:1} -ge 1 && ${openssl_ver:2:1} -ge 1 && ${openssl_ver:4:1} -ge 1 ]]
              then
               sed -i 's/^[[:space:]]*SSLProtocol.*/SSLProtocol -all +TLSv1.2 +TLSv1.3/' "$SSL_CONF_FILE"
              else 
@@ -147,7 +147,7 @@ if [ ${#issues_found[@]} -gt 0 ]; then
              fi
         else
             # Aggiungi la nuova configurazione
-            if [[ ${openssl_ver:0:1}  >= 1 && ${openssl_ver:2:1}  >= 1 && ${openssl_ver:4:1} >= 1 ]]
+            if [[ ${openssl_ver:0:1} -ge 1 && ${openssl_ver:2:1} -ge 1 && ${openssl_ver:4:1} -ge 1 ]]
             then
             echo "SSLProtocol -all +TLSv1.2 +TLSv1.3" >> "$SSL_CONF_FILE"
             else
