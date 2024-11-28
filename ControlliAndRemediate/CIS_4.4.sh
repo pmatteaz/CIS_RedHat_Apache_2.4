@@ -158,7 +158,7 @@ if [ ${#wrong_override[@]} -gt 0 ]; then
                 # Ricontrolla tutti i file
                 for config_file in "${CONFIG_FILES[@]}"; do
                     while IFS= read -r line; do
-                        if [[ "$line" =~ "AllowOverride" ]] && ! [[ "$line" =~ "AllowOverride None" ]]; then
+                        if [[ "$line" =~ "AllowOverride" ]] && ! [[ "$line" =~ "AllowOverride None" ]] && ! [[ "$line" =~ "# AllowOverride" ]]; then
                             new_wrong_override+=("$config_file:$line")
                         fi
                     done < <(grep -n "AllowOverride" "$config_file")
