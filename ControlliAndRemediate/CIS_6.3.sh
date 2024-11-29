@@ -63,7 +63,7 @@ check_access_log_config() {
         found_logformat=true
         # Verifica che contenga tutti i campi necessari
         local current_format=$(grep "^LogFormat.*combined" "$config_file" | tail -1)
-        for field in "%h" "%l" "%u" "%t" "\"%r\"" "%>s" "%b" "\"%{Referer}i\"" "\"%{User-agent}i\""; do
+        for field in "%h" "%l" "%u" "%t" "%r" "%>s" "%b" "%{Referer}i" "%{User-agent}i"; do
             if ! echo "$current_format" | grep -q "$field"; then
                 correct_format=false
                 issues+="Campo $field mancante nel LogFormat\n"
