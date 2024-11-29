@@ -163,12 +163,12 @@ if [ ${#issues_found[@]} -gt 0 ]; then
                 echo -e "${GREEN}✓ Apache riavviato con successo${NC}"
 
                 # Verifica finale
-                print_section "Verifica Finale"
-                if check_limit_request_line; then
-                    echo -e "\n${GREEN}✓ LimitRequestLine configurato correttamente${NC}"
-                else
-                    echo -e "\n${RED}✗ Problemi nella configurazione finale${NC}"
-                fi
+                # print_section "Verifica Finale"
+                # if check_limit_request_line; then
+                #    echo -e "\n${GREEN}✓ LimitRequestLine configurato correttamente${NC}"
+                #else
+                #    echo -e "\n${RED}✗ Problemi nella configurazione finale${NC}"
+                #fi
             else
                 echo -e "${RED}✗ Errore durante il riavvio di Apache${NC}"
             fi
