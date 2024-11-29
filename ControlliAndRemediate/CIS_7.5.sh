@@ -1,4 +1,5 @@
 #!/bin/bash
+# Non va il controllo applica sempre la remediation
 
 # Colori per output
 RED='\033[0;31m'
