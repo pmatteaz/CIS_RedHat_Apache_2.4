@@ -161,9 +161,9 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         tar cvfz "$(basename $path_log).tgz" "$(basename $path_log)"
         if [ $? -eq 0 ] ; then
         # se è andato bene cancella i vecchi log
-         for file in $path_log/*-[0-9]*
+         for file in $path_log/*[a-Z]-[0-9]*
           do 
-           rm -f $file
+           rm -f "$file"
           done
         else
         # il tar è andato in errore 
