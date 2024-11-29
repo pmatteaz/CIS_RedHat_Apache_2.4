@@ -1,5 +1,5 @@
 #!/bin/bash
-# Verificare non mette la scritta correttamente nel file.
+# Verificare se vanno inseriti in direttiva particolare o se vanno alla file del file.
 
 # Colori per output
 RED='\033[0;31m'
