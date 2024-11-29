@@ -153,9 +153,22 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         echo "Creazione backup in $backup_dir..."
         [ -f "$LOGROTATE_CONF" ] && cp -p "$LOGROTATE_CONF" "$backup_dir/"
         # Estrai path file di log 
-        path_logrotate=$(grep "\{" "$LOGROTATE_CONF" | cut -d" " -f1)
-        path_log=dirname $path_logrotate
+        path_logrotate="$(grep "\{" "$LOGROTATE_CONF" | cut -d" " -f1)"
+        path_log=$(dirname "$path_logrotate")
         
+        # Backup contenuto path log
+        cd $path_log/..
+        tar cvfz "$(basename $path_log).tgz" "$(basename $path_log)"
+        if [ $? -eq 0 ] ; then
+        # se è andato bene cancella i vecchi log
+         for file in $path_log/*-[0-9]*
+          do 
+           rm -f $file
+          done
+        else
+        # il tar è andato in errore 
+         echo "Verificare il tar è andato male"
+        fi
         
         # Installa logrotate se necessario
         if ! command_exists logrotate; then
@@ -177,7 +190,9 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         
         # Verifica la configurazione logrotate
         echo -e "\n${YELLOW}Verifica della configurazione logrotate...${NC}"
-        if logrotate -d "$LOGROTATE_CONF" >/dev/null 2>&1; then
+         # Forza la nuova configurazione.
+         logrotate -f "$LOGROTATE_CONF" >/dev/null 2>&1; 
+         if logrotate -d "$LOGROTATE_CONF" >/dev/null 2>&1; then
             echo -e "${GREEN}✓ Configurazione logrotate valida${NC}"
             
             # Test pratico
