@@ -101,7 +101,7 @@ check_limit_request_body() {
         local temp_file=$(mktemp)
         dd if=/dev/zero of="$temp_file" bs=1024 count=110 2>/dev/null
         
-        if curl -s -o /dev/null -F "file=@$temp_file" http://localhost/; then
+        if ! curl -s -o /dev/null -F "file=@$temp_file" http://localhost/ | grep 413 ; then
             echo -e "${GREEN}✓ Il server rifiuta correttamente POST troppo grandi${NC}"
         else
             echo -e "${YELLOW}! Il server accetta POST più grandi di 102400 bytes${NC}"
