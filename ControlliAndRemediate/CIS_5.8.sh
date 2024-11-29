@@ -132,7 +132,7 @@ if [ ${#issues_found[@]} -gt 0 ]; then
                 print_section "Verifica Finale"
                 
                 # Verifica la presenza della configurazione
-                if grep -q "^TraceEnable Off" "$MAIN_CONFIG"; then
+                if grep -iq "^TraceEnable Off" "$MAIN_CONFIG"; then
                     echo -e "${GREEN}✓ TraceEnable Off configurato correttamente${NC}"
                     
                     # Test pratico del metodo TRACE
