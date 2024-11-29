@@ -171,7 +171,7 @@ if [ ${#issues_found[@]} -gt 0 ]; then
                     last_log=$(tail -n 1 "$LOG_DIR/access_log")
                     
                     # Verifica la presenza dei campi richiesti nel log
-                    local fields_ok=true
+                    fields_ok=true
                     for field in "Test-Agent" "GET" "HTTP" "["; do
                         if ! echo "$last_log" | grep -q "$field"; then
                             fields_ok=false
