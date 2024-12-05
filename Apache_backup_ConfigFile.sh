@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Imposta la directory di backup
-BACKUP_DIR="/tmp/backups/apache"
+BACKUP_DIR="/root/backups"
 DATE=$(date +%Y%m%d_%H%M%S)
 BACKUP_PATH="${BACKUP_DIR}/apache_backup_${DATE}"
 
@@ -34,9 +34,15 @@ fi
 
 # Backup della directory principale di Apache
 if [ -d "/etc/httpd" ]; then
-    cp -r /etc/httpd/* "${BACKUP_PATH}/httpd"  # RedHat/CentOS
+    # Crea la directory di backup
+    BACKUP_PATH=${BACKUP_PATH}/httpd
+    mkdir -p "${BACKUP_PATH}"
+    cp -r /etc/httpd/conf* "${BACKUP_PATH}"  # RedHat/CentOS
 elif [ -d "/etc/apache2" ]; then
-    cp -r /etc/apache2/* "${BACKUP_PATH}/apache2"  # Debian/Ubuntu
+    # Crea la directory di backup
+    BACKUP_PATH=${BACKUP_PATH}/apache2
+    mkdir -p "${BACKUP_PATH}"
+    cp -r /etc/apache2/* "${BACKUP_PATH}"  # Debian/Ubuntu
 fi
 
 # Backup delle directory degli include specificate in httpd.conf
@@ -61,7 +67,7 @@ done < <(get_include_paths "$APACHE_CONF")
 
 # Comprimi il backup
 cd "${BACKUP_DIR}"
-tar -czf "apache_backup_${DATE}.tar.gz" "apache_backup_${DATE}"
-rm -rf "${BACKUP_PATH}"
+#tar -czf "apache_backup_${DATE}.tar.gz" "apache_backup_${DATE}"
+#rm -rf "${BACKUP_PATH}"
 
 echo "Backup completato in: ${BACKUP_DIR}/apache_backup_${DATE}.tar.gz"
