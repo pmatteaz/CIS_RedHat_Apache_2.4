@@ -101,7 +101,7 @@ check_limit_request_fields() {
             test_header="$test_header -H \"X-Test-$i: value\""
         done
         
-        if curl -v -s -o /dev/null http://localhost "$test_header" 2>&1 | grep "400 Bad Request" ; then
+        if eval curl -v -s -o /dev/null http://localhost "$test_header" 2>&1 | grep "400 Bad Request" 1>/dev/null ; then
             echo -e "${GREEN}✓ Il server rifiuta correttamente richieste con troppi headers${NC}"
         else
             echo -e "${YELLOW}! Il server accetta richieste con più di 100 headers${NC}"
