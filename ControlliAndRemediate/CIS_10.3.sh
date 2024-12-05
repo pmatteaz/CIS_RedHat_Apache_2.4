@@ -98,7 +98,7 @@ check_limit_request_fieldsize() {
         echo -e "\n${BLUE}Test valore effettivo con header lungo:${NC}"
         # Crea un header di test di 1100 bytes
         local test_value=$(printf 'X%.0s' {1..1100})
-        if ! curl -s -o /dev/null -H "X-Test: $test_value" http://localhost/; then
+        if ! curl -v -s -o /dev/null -H "X-Test: $test_value" http://localhost/ 2>&1 | grep "400 Bad Request"; then
             echo -e "${GREEN}✓ Il server rifiuta correttamente header troppo lunghi${NC}"
         else
             echo -e "${YELLOW}! Il server accetta header più lunghi di 1024 bytes${NC}"
