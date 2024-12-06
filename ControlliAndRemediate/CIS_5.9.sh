@@ -48,12 +48,6 @@ declare -a issues_found=()
 
 print_section "Verifica Configurazione HTTP Protocol"
 
-# Configurazione necessaria per il rewrite
-REWRITE_CONFIG="RewriteEngine On \
-RewriteCond %{THE_REQUEST} !HTTP/1\.1$ \
-RewriteRule .* - [F] \
-"
-
 # Funzione per verificare la configurazione del protocollo
 check_protocol_config() {
     local config_file="$1"
@@ -146,8 +140,13 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         if [ -f /etc/debian_version ]; then
             PROTOCOL_CONF="$APACHE_CONFIG_DIR/conf-available/protocol-security.conf"
         fi
+# Creo il file con la configurazione per la rewrite 
+cat <<EOF >"$PROTOCOL_CONF"
+REWRITE_CONFIG="RewriteEngine On 
+RewriteCond %{THE_REQUEST} !HTTP/1\.1$ 
+RewriteRule .* - [F] 
 
-        echo "$REWRITE_CONFIG" > "$PROTOCOL_CONF"
+EOF
 
         # Per Debian/Ubuntu, abilita il file di configurazione
         if [ -f /etc/debian_version ]; then
