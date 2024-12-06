@@ -86,7 +86,7 @@ check_header_timeout() {
                 
                 # Estrai il valore massimo del timeout
                 local max_timeout=$(echo "$timeout_line" | grep -o 'header=[0-9]*-[0-9]*' | cut -d'-' -f2)
-                echo "## $max_timeout ##"
+                ## echo "## $max_timeout ##"
                 if [ -n "$max_timeout" ] && [ "$max_timeout" -le 40 ]; then
                     value_correct=true
                     echo -e "${GREEN}✓ Timeout header configurato correttamente (≤ 40 secondi)${NC}"
