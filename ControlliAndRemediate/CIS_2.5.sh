@@ -1,4 +1,5 @@
 #!/bin/bash
+# verificare non va con server_info vedi slb28irt01
 
 # Colori per output
 RED='\033[0;31m'
