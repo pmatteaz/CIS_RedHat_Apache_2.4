@@ -162,7 +162,7 @@ if [ ${#issues_found[@]} -gt 0 ]; then
                     fi
                     
                     # Test accesso a .htpasswd
-                    response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/test_ht/.htpasswd)
+                    response=$(curl -k -s -o /dev/null -w "%{http_code}" https://localhost/test_ht/.htpasswd)
                     if [ "$response" = "403" ]; then
                         echo -e "${GREEN}✓ Accesso a .htpasswd correttamente negato${NC}"
                     else
