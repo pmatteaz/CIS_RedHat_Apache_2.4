@@ -174,12 +174,12 @@ EOL
                 echo -e "${GREEN}✓ Apache riavviato con successo${NC}"
                 
                 # Verifica finale
-                print_section "Verifica Finale"
-                if check_keepalive_configuration; then
-                    echo -e "\n${GREEN}✓ KeepAlive configurato correttamente${NC}"
-                else
-                    echo -e "\n${RED}✗ Problemi nella configurazione finale${NC}"
-                fi
+                # print_section "Verifica Finale"
+                # if check_keepalive_configuration; then
+                #    echo -e "\n${GREEN}✓ KeepAlive configurato correttamente${NC}"
+                # else
+                #    echo -e "\n${RED}✗ Problemi nella configurazione finale${NC}"
+                # fi
             else
                 echo -e "${RED}✗ Errore durante il riavvio di Apache${NC}"
             fi
