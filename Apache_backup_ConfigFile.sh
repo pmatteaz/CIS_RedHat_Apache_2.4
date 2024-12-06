@@ -67,7 +67,8 @@ done < <(get_include_paths "$APACHE_CONF")
 
 # Comprimi il backup
 cd "${BACKUP_DIR}"
-#tar -czf "apache_backup_${DATE}.tar.gz" "apache_backup_${DATE}"
-#rm -rf "${BACKUP_PATH}"
+tar -czf "apache_backup_${DATE}.tar.gz" "apache_backup_${DATE}"
+BACKUP_PATH=$(dirname BACKUP_PATH)
+rm -rf "${BACKUP_PATH}"
 
 echo "Backup completato in: ${BACKUP_DIR}/apache_backup_${DATE}.tar.gz"
