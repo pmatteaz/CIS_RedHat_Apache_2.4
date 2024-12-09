@@ -1,4 +1,4 @@
-ss#!/bin/bash
+#!/bin/bash
 # ## 2.1 Ensure Only Necessary Authentication and Authorization Modules Are Enabled
 # Definire moduli necessari e quelli non necessari epoi applicare eventuale remediation.
 # Sarebbe un attività manuale fatto comunqe bozza
