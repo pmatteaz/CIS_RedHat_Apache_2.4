@@ -1,5 +1,6 @@
 #!/bin/bash
 # CIS 1.1: Ensure the Pre-Installation Planning Checklist Has Been Implemented
+
 # Colori per output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
