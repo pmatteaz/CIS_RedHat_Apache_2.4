@@ -173,12 +173,20 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         chmod 755 "$SAFE_PIDFILE_DIR"
 
         # Aggiorna la configurazione del PidFile
-        if grep -q "^PidFile" "$APACHE_CONF"; then
-            sed -i "s|^PidFile.*|PidFile $SAFE_PIDFILE_DIR/apache2.pid|" "$APACHE_CONF"
+        if [ "$SYSTEM_TYPE" = "redhat" ]; then
+           if grep -q "^PidFile" "$APACHE_CONF"; then
+              sed -i "s|^PidFile.*|PidFile $SAFE_PIDFILE_DIR/httpd.pid|" "$APACHE_CONF"
+           else
+              echo "PidFile $SAFE_PIDFILE_DIR/httpd.pid" >> "$APACHE_CONF"
+           fi
         else
-            echo "PidFile $SAFE_PIDFILE_DIR/apache2.pid" >> "$APACHE_CONF"
+           if grep -q "^PidFile" "$APACHE_CONF"; then
+              sed -i "s|^PidFile.*|PidFile $SAFE_PIDFILE_DIR/apache2.pid|" "$APACHE_CONF"
+           else
+              echo "PidFile $SAFE_PIDFILE_DIR/httpd2.pid" >> "$APACHE_CONF"
+           fi
         fi
-
+        
         # Verifica la configurazione di Apache
         echo -e "\n${YELLOW}Verifica configurazione Apache...${NC}"
         if $APACHE_CMD -t; then
