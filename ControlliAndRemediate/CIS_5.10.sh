@@ -1,5 +1,4 @@
 #!/bin/bash
-# Controlli con la curl non vanno 
 
 # Colori per output
 RED='\033[0;31m'
