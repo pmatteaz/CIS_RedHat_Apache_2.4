@@ -154,7 +154,7 @@ if [ ${#issues_found[@]} -gt 0 ]; then
                 
                 if command_exists curl; then
                     # Test accesso a .htaccess
-                    response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/test_ht/.htaccess)
+                    response=$(curl -k -s -o /dev/null -w "%{http_code}" https://localhost/test_ht/.htaccess)
                     if [ "$response" = "403" ]; then
                         echo -e "${GREEN}✓ Accesso a .htaccess correttamente negato${NC}"
                     else
