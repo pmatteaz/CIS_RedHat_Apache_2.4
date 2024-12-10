@@ -1,4 +1,4 @@
-# CIS Controls Verification Scripts for Apache Tomcat
+# CIS Controls Verification Scripts for Apache 2.4
 
 ⚠️ **WARNING: PROJECT UNDER DEVELOPMENT** ⚠️
 
@@ -51,7 +51,7 @@ The scripts are provided "as is" without warranties of any kind. Use of the scri
 
 ---
 
-Script di Verifica CIS Controls per Apache Tomcat
+Script di Verifica CIS Controls per Apache 2.4
 ⚠️ ATTENZIONE: PROGETTO IN FASE DI SVILUPPO ⚠️
 Stato del Progetto
 Questo repository contiene una collezione di script bash per la verifica e la correzione automatica dei CIS Controls per Apache Tomcat. Gli script sono attualmente in fase di sviluppo attivo e non sono pronti per l'uso in produzione.
