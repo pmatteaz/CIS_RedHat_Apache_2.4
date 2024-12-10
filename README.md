@@ -1,138 +1,77 @@
-### The scripts are under development so they may not work properly.
-###################################################################
-
-
-
-Punti implementati.
-
-1.1	Ensure the Pre-Installation Planning Checklist Has Been Implemented
-
-1.3	Ensure Apache Is Installed From the Appropriate Binaries
-
-2.1	Ensure Only Necessary Authentication and Authorization Modules Are Enabled
-
-2.2	Ensure the Log Config Module Is Enabled
-
-2.3	Ensure the WebDAV Modules Are Disabled
-
-2.5	Ensure the Autoindex Module Is Disabled
-
-2.7	Ensure the User Directories Module Is Disabled
-
-2.8	Ensure the Info Module Is Disabled
-
-2.9	Ensure the Basic and Digest Authentication Modules are Disabled
-
-3.1	Ensure the Apache Web Server Runs As a Non-Root User
-
-3.2	Ensure the Apache User Account Has an Invalid Shell
-
-3.3	Ensure the Apache User Account Is Locked
-
-3.4	Ensure Apache Directories and Files Are Owned By Root
-
-3.5	Ensure the Group Is Set Correctly on Apache Directories and Files
-
-3.6	Ensure Other Write Access on Apache Directories and Files Is Restricted
-
-3.7	Ensure the Core Dump Directory Is Secured
-
-3.8	Ensure the Lock File Is Secured
-
-3.9	Ensure the Pid File Is Secured
-
-3.10	Ensure the ScoreBoard File Is Secured
-
-3.11	Ensure Group Write Access for the Apache Directories and Files Is Properly Restricted
-
-3.12	Ensure Group Write Access for the Document Root Directories and Files Is Properly Restricted
-
-3.13	Ensure Access to Special Purpose Application Writable Directories is Properly Restricted
-
-4.1	Ensure Access to OS Root Directory Is Denied By Default
-
-4.2	Ensure Appropriate Access to Web Content Is Allowed
-
-4.3	Ensure OverRide Is Disabled for the OS Root Directory
-
-4.4	Ensure OverRide Is Disabled for All Directories
-
-5.1	Ensure Options for the OS Root Directory Are Restricted
-
-5.7	Ensure HTTP Request Methods Are Restricted
-
-5.8	Ensure the HTTP TRACE Method Is Disabled
-
-5.9	Ensure Old HTTP Protocol Versions Are Disallowed
-
-5.10	Ensure Access to .ht* Files Is Restricted
-
-5.13	Ensure Access to Inappropriate File Extensions Is Restricted
-
-5.14	Ensure IP Address Based Requests Are Disallowed
-
-5.15	Ensure the IP Addresses for Listening for Requests Are Specified
-
-6.1	Ensure the Error Log Filename and Severity Level Are Configured Correctly
-
-6.2	Ensure a Syslog Facility Is Configured for Error Logging
-
-6.3	Ensure the Server Access Log Is Configured Correctly
-
-6.4	Ensure Log Storage and Rotation Is Configured Correctly
-
-6.5	Ensure Applicable Patches Are Applied
-
-7.1	Ensure mod_ssl and/or mod_nss Is Installed
-
-7.2	Ensure a Valid Trusted Certificate Is Installed
-
-7.3	Ensure the Server's Private Key Is Protected
-
-7.4	Ensure the TLSv1.0 and TLSv1.1 Protocols are Disabled
-
-7.5	Ensure Weak SSL/TLS Ciphers Are Disabled
-
-7.6	Ensure Insecure SSL Renegotiation Is Not Enabled
-
-7.8	Ensure Medium Strength SSL/TLS Ciphers Are Disabled
-
-7.10	Ensure OCSP Stapling Is Enabled
-
-7.11	Ensure HTTP Strict Transport Security Is Enabled
-
-7.12	Ensure Only Cipher Suites That Provide Forward Secrecy Are Enabled
-
-8.1	Ensure ServerTokens is Set to 'Prod' or 'ProductOnly'
-
-8.2	Ensure ServerSignature Is Not Enabled
-
-8.3	Ensure All Default Apache Content Is Removed
-
-8.4	Ensure ETag Response Header Fields Do Not Include Inodes
-
-9.1	Ensure the TimeOut Is Set to 10 or Less
-
-9.2	Ensure KeepAlive Is Enabled
-
-9.3	Ensure MaxKeepAliveRequests is Set to a Value of 100 or Greater
-
-9.4	Ensure KeepAliveTimeout is Set to a Value of 15 or Less
-
-9.5	Ensure the Timeout Limits for Request Headers is Set to 40 or Less
-
-9.6	Ensure Timeout Limits for the Request Body is Set to 20 or Less
-
-10.1	Ensure the LimitRequestLine directive is Set to 512 or less
-
-10.2	Ensure the LimitRequestFields Directive is Set to 100 or Less
-
-10.3	Ensure the LimitRequestFieldsize Directive is Set to 1024 or Less
-
-10.4	Ensure the LimitRequestBody Directive is Set to 102400 or Less
-
-# Per fare il backup:
-./permissions.sh -b /path/to/directory [output_file]
-
-# Per ripristinare:
-./permissions.sh -r /path/to/directory backup_file
+⚠️ ATTENZIONE: PROGETTO IN FASE DI SVILUPPO ⚠️
+
+Stato del Progetto
+Questo repository contiene una collezione di script bash per la verifica e la correzione automatica dei CIS Controls per Apache Tomcat. Gli script sono attualmente in fase di sviluppo attivo e non sono pronti per l'uso in produzione.
+
+Avvertenze Importanti
+Gli script sono in fase di sviluppo preliminare e potrebbero contenere errori
+Non è garantito il corretto funzionamento in tutti gli ambienti
+Potrebbero verificarsi comportamenti inattesi
+Si consiglia di testare gli script in un ambiente di sviluppo/test prima di qualsiasi utilizzo in produzione
+Eseguire sempre un backup completo prima di utilizzare gli script
+Limitazioni Attuali
+Gli script potrebbero non coprire tutti i casi d'uso possibili
+Alcune configurazioni personalizzate potrebbero non essere gestite correttamente
+La compatibilità con diverse versioni di Tomcat non è garantita
+Le procedure di rollback potrebbero non essere complete
+Best Practices
+Backup: Eseguire sempre un backup completo del sistema prima di utilizzare gli script
+Testing: Testare gli script in un ambiente non di produzione
+Verifica: Controllare manualmente i risultati dopo l'esecuzione
+Documentazione: Documentare qualsiasi modifica apportata al sistema
+Contribuire
+Siamo aperti a contributi e segnalazioni di problemi. Se riscontri un problema o hai suggerimenti per miglioramenti, per favore:
+
+Apri una issue descrivendo il problema
+Fornisci dettagli sull'ambiente di test
+Includi log ed eventuali messaggi di errore
+Se possibile, proponi una soluzione
+Disclaimer
+Gli script vengono forniti "così come sono", senza garanzie di alcun tipo. L'utilizzo degli script è a proprio rischio e pericolo. Gli autori non si assumono alcuna responsabilità per eventuali danni derivanti dall'uso degli script.
+
+Prossimi Sviluppi
+Miglioramento della gestione degli errori
+Aggiunta di procedure di rollback complete
+Test su diverse versioni di Tomcat
+Documentazione dettagliata per ogni script
+Implementazione di logging avanzato
+
+
+CIS Controls Verification Scripts for Apache Tomcat
+⚠️ WARNING: PROJECT UNDER DEVELOPMENT ⚠️
+
+Project Status
+This repository contains a collection of bash scripts for verifying and automatically correcting CIS Controls for Apache Tomcat. The scripts are currently under active development and are not ready for production use.
+
+Important Warnings
+Scripts are in preliminary development phase and may contain errors
+Proper functioning in all environments is not guaranteed
+Unexpected behaviors may occur
+It is recommended to test scripts in a development/test environment before any production use
+Always perform a complete backup before using the scripts
+Current Limitations
+Scripts may not cover all possible use cases
+Some custom configurations may not be handled properly
+Compatibility with different Tomcat versions is not guaranteed
+Rollback procedures may not be complete
+Best Practices
+Backup: Always perform a complete system backup before using the scripts
+Testing: Test scripts in a non-production environment
+Verification: Manually verify results after execution
+Documentation: Document any changes made to the system
+Contributing
+We are open to contributions and issue reports. If you encounter a problem or have suggestions for improvements, please:
+
+Open an issue describing the problem
+Provide details about the test environment
+Include logs and any error messages
+If possible, propose a solution
+Disclaimer
+The scripts are provided "as is" without warranties of any kind. Use of the scripts is at your own risk. The authors assume no liability for any damages resulting from the use of the scripts.
+
+Future Developments
+Improved error handling
+Addition of complete rollback procedures
+Testing on different Tomcat versions
+Detailed documentation for each script
+Implementation of advanced logging
