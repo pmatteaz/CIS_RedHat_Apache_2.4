@@ -94,3 +94,5 @@ Aggiunta di procedure di rollback complete
 Test su diverse versioni di Tomcat
 Documentazione dettagliata per ogni script
 Implementazione di logging avanzato
+
+© 2024 - Rilasciato sotto licenza - GNU General Public License v3.0
