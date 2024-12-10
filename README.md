@@ -1,3 +1,8 @@
+### The scripts are under development so they may not work properly.
+###################################################################
+
+
+
 Punti implementati.
 
 1.1	Ensure the Pre-Installation Planning Checklist Has Been Implemented
