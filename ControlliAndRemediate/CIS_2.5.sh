@@ -1,5 +1,4 @@
 #!/bin/bash
-# verificare non va con server_info vedi slb28irt01
 
 # Colori per output
 RED='\033[0;31m'
@@ -44,29 +43,29 @@ else
     exit 1
 fi
 
-print_section "Verifica del Modulo Status"
+print_section "Verifica del Modulo Autoindex"
 
-# Verifica se il modulo status è caricato
+# Verifica se il modulo autoindex è caricato
 ACTIVE_MODULES=$($APACHE_CMD -M 2>/dev/null || apache2ctl -M 2>/dev/null)
 
-if echo "$ACTIVE_MODULES" | grep -q "status_module"; then
-    echo -e "${RED}✗ Modulo status è attualmente attivo${NC}"
+if echo "$ACTIVE_MODULES" | grep -q "mod_autoindex"; then
+    echo -e "${RED}✗ Modulo autoindex è attualmente attivo${NC}"
 
-    # Cerca configurazioni del modulo status
-    echo -e "\n${YELLOW}Ricerca configurazioni del modulo status...${NC}"
+    # Cerca configurazioni del modulo autoindex
+    echo -e "\n${YELLOW}Ricerca configurazioni del modulo autoindex...${NC}"
 
-    # Array per memorizzare i file con configurazioni status
-    declare -a status_configs=()
+    # Array per memorizzare i file con configurazioni autoindex
+    declare -a autoindex_configs=()
 
     # Cerca nelle directory di configurazione
     while IFS= read -r -d '' file; do
-        if grep -l "mod_status\|status_module\|server-status" "$file" >/dev/null 2>&1; then
-            status_configs+=("$file")
-            echo -e "${RED}Trovata configurazione status in: $file${NC}"
+        if grep -l "mod_autoindex\|autoindex_module\|Options.*Indexes" "$file" >/dev/null 2>&1; then
+            autoindex_configs+=("$file")
+            echo -e "${RED}Trovata configurazione autoindex in: $file${NC}"
         fi
     done < <(find "$APACHE_CONFIG_DIR" -type f -print0)
 
-    echo -e "\n${YELLOW}Vuoi procedere con la disabilitazione del modulo status? (s/n)${NC}"
+    echo -e "\n${YELLOW}Vuoi procedere con la disabilitazione del modulo autoindex? (s/n)${NC}"
     read -r risposta
 
     if [[ "$risposta" =~ ^[Ss]$ ]]; then
@@ -74,7 +73,7 @@ if echo "$ACTIVE_MODULES" | grep -q "status_module"; then
 
         # Backup della configurazione
         timestamp=$(date +%Y%m%d_%H%M%S)_CIS_2.5
-        backup_dir="/root/apache_status_backup_$timestamp"
+        backup_dir="/root/apache_autoindex_backup_$timestamp"
         mkdir -p "$backup_dir"
 
         echo "Creazione backup della configurazione in $backup_dir..."
@@ -90,32 +89,32 @@ if echo "$ACTIVE_MODULES" | grep -q "status_module"; then
             cp -r "$APACHE_CONFIG_DIR/conf-enabled" "$backup_dir/"
         fi
 
-        # Disabilitazione del modulo status
-        echo -e "\n${YELLOW}Disabilitazione modulo status...${NC}"
+        # Disabilitazione del modulo autoindex
+        echo -e "\n${YELLOW}Disabilitazione modulo autoindex...${NC}"
 
         # Per sistemi Red Hat
         if [ "$APACHE_CMD" = "httpd" ]; then
-            # Cerca e commenta il LoadModule per status_module
-            find "$MODULES_DIR" -type f -name "*.conf" -exec sed -i 's/^LoadModule status_module/##LoadModule status_module/' {} \;
+            # Cerca e commenta il LoadModule per autoindex_module
+            find "$MODULES_DIR" -type f -name "*.conf" -exec sed -i 's/^LoadModule autoindex_module/##LoadModule autoindex_module/' {} \;
 
-            # Cerca e commenta le configurazioni di server-status
-            for config in "${status_configs[@]}"; do
-                sed -i 's/^[[:space:]]*<Location \/server-status>/##<Location \/server-status>/' "$config"
-                sed -i 's/^[[:space:]]*SetHandler server-status/##SetHandler server-status/' "$config"
-                sed -i 's/^[[:space:]]*<\/Location>/##<\/Location>/' "$config"
-            done
+            # Cerca e modifica le opzioni Indexes
+            #for config in "${autoindex_configs[@]}"; do
+            #    sed -i 's/Options.*Indexes/Options/g' "$config"
+            #    sed -i 's/Options *$/Options None/g' "$config"
+            #done
 
         # Per sistemi Debian
         else
-            if ! a2dismod status; then
-                echo -e "${RED}Errore nella disabilitazione del modulo status${NC}"
+            if ! a2dismod autoindex; then
+                echo -e "${RED}Errore nella disabilitazione del modulo autoindex${NC}"
                 exit 1
             fi
 
-            # Rimuovi eventuali configurazioni residue
-            for config in "${status_configs[@]}"; do
-                sed -i '/server-status/d' "$config"
-            done
+            # Rimuovi Indexes dalle opzioni
+            #for config in "${autoindex_configs[@]}"; do
+            #    sed -i 's/Options.*Indexes/Options/g' "$config"
+            #    sed -i 's/Options *$/Options None/g' "$config"
+            #done
         fi
 
         # Verifica della configurazione di Apache
@@ -132,20 +131,20 @@ if echo "$ACTIVE_MODULES" | grep -q "status_module"; then
                 print_section "Verifica Finale"
                 FINAL_MODULES=$($APACHE_CMD -M 2>/dev/null || apache2ctl -M 2>/dev/null)
 
-                if ! echo "$FINAL_MODULES" | grep -q "status_module"; then
-                    echo -e "${GREEN}✓ Modulo status disabilitato con successo${NC}"
+                if ! echo "$FINAL_MODULES" | grep -q "autoindex_module"; then
+                    echo -e "${GREEN}✓ Modulo autoindex disabilitato con successo${NC}"
 
-                    # Verifica accesso a server-status
+                    # Verifica directory listing
                     if command_exists curl; then
-                        echo -e "\n${YELLOW}Verifica accesso a server-status...${NC}"
-                        if ! curl -s -I "http://localhost/server-status" | grep -q "200 OK"; then
-                            echo -e "${GREEN}✓ /server-status non è più accessibile${NC}"
+                        echo -e "\n${YELLOW}Verifica directory listing...${NC}"
+                        if ! curl -s "http://localhost/" | grep -q "Index of /"; then
+                            echo -e "${GREEN}✓ Directory listing non è più attivo${NC}"
                         else
-                            echo -e "${RED}✗ /server-status è ancora accessibile${NC}"
+                            echo -e "${RED}✗ Directory listing è ancora attivo${NC}"
                         fi
                     fi
                 else
-                    echo -e "${RED}✗ Modulo status è ancora attivo${NC}"
+                    echo -e "${RED}✗ Modulo autoindex è ancora attivo${NC}"
                 fi
 
             else
@@ -172,12 +171,12 @@ if echo "$ACTIVE_MODULES" | grep -q "status_module"; then
         echo -e "${YELLOW}Remediation annullata dall'utente${NC}"
     fi
 else
-    echo -e "${GREEN}✓ Modulo status non è attivo${NC}"
+    echo -e "${GREEN}✓ Modulo autoindex non è attivo${NC}"
 fi
 
 # Riepilogo finale
 print_section "Riepilogo Finale"
-echo "1. Verifica i moduli attivi con: $APACHE_CMD -M | grep status"
+echo "1. Verifica i moduli attivi con: $APACHE_CMD -M | grep autoindex"
 echo "2. Controlla i file di configurazione in: $APACHE_CONFIG_DIR"
 if [ -d "$backup_dir" ]; then
     echo "3. Backup della configurazione disponibile in: $backup_dir"
