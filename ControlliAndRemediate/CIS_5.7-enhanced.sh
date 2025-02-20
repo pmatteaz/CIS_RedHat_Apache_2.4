@@ -115,9 +115,9 @@ if [ ${#config_files[@]} -eq 0 ]; then
 fi
 
 # Chiedi conferma per la remediation
-#echo -e "\n${YELLOW}Vuoi procedere con la verifica e remediation delle sezioni Directory? (s/n)${NC}"
-#read -r risposta
-risposta="S"
+echo -e "\n${YELLOW}Vuoi procedere con la verifica e remediation delle sezioni Directory? (s/n)${NC}"
+read -r risposta
+
 
 if [[ "$risposta" =~ ^[Ss]$ ]]; then
     print_section "Esecuzione Remediation"
