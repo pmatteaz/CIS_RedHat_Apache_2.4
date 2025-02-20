@@ -1,8 +1,4 @@
 #!/bin/bash
-# Mettere apposto la verifica "/etc/httpd/conf.d/protocol-security.conf"
-# disabilita solo in protocol-security.conf da mettere apposto il controllo
-# Capire se basta mettere la direttiva sotto protocol-security.conf
-# La verifica finale deve verificare la redirezione al momento è sbagliata 
 
 # Colori per output
 RED='\033[0;31m'
@@ -47,6 +43,12 @@ fi
 declare -a issues_found=()
 
 print_section "Verifica Configurazione HTTP Protocol"
+
+# Configurazione necessaria per il rewrite
+REWRITE_CONFIG="RewriteEngine On \
+RewriteCond %{THE_REQUEST} !HTTP/1\.1$ \
+RewriteRule .* - [F] \
+"
 
 # Funzione per verificare la configurazione del protocollo
 check_protocol_config() {
@@ -140,13 +142,8 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         if [ -f /etc/debian_version ]; then
             PROTOCOL_CONF="$APACHE_CONFIG_DIR/conf-available/protocol-security.conf"
         fi
-# Creo il file con la configurazione per la rewrite 
-cat <<EOF >"$PROTOCOL_CONF"
-REWRITE_CONFIG=RewriteEngine On 
-RewriteCond %{THE_REQUEST} !HTTP/1\.1$ 
-RewriteRule .* - [F] 
 
-EOF
+        echo "$REWRITE_CONFIG" > "$PROTOCOL_CONF"
 
         # Per Debian/Ubuntu, abilita il file di configurazione
         if [ -f /etc/debian_version ]; then
