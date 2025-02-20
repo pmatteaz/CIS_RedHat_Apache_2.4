@@ -12,6 +12,10 @@ print_section() {
     echo -e "\n${BLUE}=== $1 ===${NC}"
 }
 
+print_section "Backup Configurazione"
+
+../Apache_backup_ConfigFile.sh
+
 print_section "Start hardening!"
 
 ./CIS_2.2.sh
@@ -43,26 +47,26 @@ print_section "Start hardening!"
 ./CIS_6.1.sh
 ./CIS_6.3.sh
 ./CIS_6.4.sh
-./CIS_6.5.sh
+#./CIS_6.5.sh
 ./CIS_7.1.sh
 ./CIS_7.3.sh
 ./CIS_7.4.sh
 ./CIS_7.5.sh
 ./CIS_7.6.sh
 ./CIS_7.8.sh
-./CIS_7.10.sh
+#./CIS_7.10.sh
 ./CIS_7.11.sh
 ./CIS_7.12.sh
 ./CIS_8.1.sh
 ./CIS_8.2.sh
 ./CIS_8.3-2.sh
 ./CIS_8.4.sh
-./CIS_9.1.sh
+#./CIS_9.1.sh
 ./CIS_9.2-3-4.sh
 ./CIS_9.5-6.sh
 ./CIS_10.1.sh
 ./CIS_10.2.sh
 ./CIS_10.3.sh
-./CIS_10.4.sh
+#./CIS_10.4.sh
 
 print_section "Stop hardening "
