@@ -142,7 +142,7 @@ if [ ${#issues_found[@]} -gt 0 ]; then
         fi
 # Creo il file con la configurazione per la rewrite 
 cat <<EOF >"$PROTOCOL_CONF"
-REWRITE_CONFIG="RewriteEngine On 
+REWRITE_CONFIG=RewriteEngine On 
 RewriteCond %{THE_REQUEST} !HTTP/1\.1$ 
 RewriteRule .* - [F] 
 
